@@ -1,0 +1,29 @@
+<%- include('../partials/header') %>
+
+<section class="hero">
+    <h1>SocialNet</h1>
+    <p class="lead">רשת חברתית לקבוצות, פוסטים ומקומות</p>
+
+    <% if (!currentUser) { %>
+        <p><a class="btn" href="/register">הצטרפו עכשיו</a></p>
+    <% } else { %>
+        <p><a class="btn" href="/feed">לפיד שלי</a></p>
+    <% } %>
+</section>
+
+<section class="cards">
+    <article class="card">
+        <h2>קבוצות</h2>
+        <p>הצטרפו לקבוצות לפי תחומי עניין, או פתחו קבוצה משלכם ונהלו אותה.</p>
+    </article>
+    <article class="card">
+        <h2>פוסטים</h2>
+        <p>שתפו טקסט, תמונות וסרטונים עם החברים והקבוצות שלכם.</p>
+    </article>
+    <article class="card">
+        <h2>מקומות</h2>
+        <p>סמנו מקומות על המפה וגלו מה קורה סביבכם.</p>
+    </article>
+</section>
+
+<%- include('../partials/footer') %>

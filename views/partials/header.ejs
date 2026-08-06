@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= typeof title !== 'undefined' ? title : 'SocialNet' %></title>
+    <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<header class="site-header">
+    <nav class="nav">
+        <a class="brand" href="/">SocialNet</a>
+        <ul class="nav-links">
+            <li><a href="/">בית</a></li>
+            <% if (currentUser) { %>
+                <li><a href="/profile"><%= currentUser.username %></a></li>
+                <li><a href="/logout">התנתקות</a></li>
+            <% } else { %>
+                <li><a href="/login">התחברות</a></li>
+                <li><a href="/register">הרשמה</a></li>
+            <% } %>
+        </ul>
+    </nav>
+</header>
+
+<main class="container">
