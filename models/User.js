@@ -26,6 +26,12 @@ async function createIndexes() {
 }
 
 async function create(user) {
+    // Guard against a controller accidentally passing a plaintext password.
+    // A bcrypt hash always starts with $2a$, $2b$ or $2y$.
+    if (!/^\$2[aby]\$/.test(user.passwordHash || '')) {
+        throw new Error('User.create expects a bcrypt hash, not a plaintext password.');
+    }
+
     const doc = {
         username: user.username,
         passwordHash: user.passwordHash,

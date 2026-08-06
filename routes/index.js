@@ -1,8 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const homeController = require('../controllers/homeController');
 
-// Routes map a URL to a controller function. No logic lives here.
-router.get('/', homeController.index);
+const { isAuth, isGuest } = require('../middleware/isAuth');
+const authController = require('../controllers/authController');
+const pageController = require('../controllers/pageController');
+
+// Public. isGuest bounces an already-logged-in user straight to the feed.
+router.get('/', isGuest, authController.showLanding);
+
+// Everything below requires a session (§25).
+router.get('/feed', isAuth, pageController.feed);
+router.get('/profile', isAuth, pageController.profile);
 
 module.exports = router;

@@ -1,0 +1,26 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container">
+
+    <section>
+        <h1>Welcome back, <%= currentUser.fullName %>.</h1>
+        <p style="color:var(--muted)">
+            You are logged in. This page is only reachable with a valid session &mdash;
+            logging out and visiting <code>/feed</code> directly will send you back to the
+            landing page.
+        </p>
+    </section>
+
+    <section style="margin-top:28px;padding:22px;border:1px solid var(--divider);
+                    border-radius:var(--radius);background:var(--surface)">
+        <h2 style="margin:0 0 6px;font-size:1rem">Your feed is coming in M4</h2>
+        <p style="margin:0;color:var(--muted);font-size:.9rem">
+            It will show posts from your friends and from the groups you belong to (&sect;27).
+            Posts arrive in M2, groups in M3.
+        </p>
+    </section>
+
+</main>
+
+<%- include('../partials/footer') %>

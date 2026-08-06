@@ -1,0 +1,52 @@
+<%- include('../partials/head') %>
+
+<div class="split">
+
+    <section class="panel">
+        <a class="wordmark" href="/">SocialNet</a>
+        <h2 class="headline">
+            Start sharing with<br>
+            <em>your people</em>.
+        </h2>
+    </section>
+
+    <aside class="sidebar">
+        <form class="form" method="POST" action="/register">
+            <h1>Create your account</h1>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-error"><%= error %></div>
+            <% } %>
+
+            <input class="field" type="text" name="username" placeholder="Username"
+                   value="<%= values.username %>"
+                   pattern="[a-zA-Z0-9_]{3,20}"
+                   title="3-20 characters: letters, digits or underscore"
+                   autocomplete="username" required>
+
+            <input class="field" type="text" name="fullName" placeholder="Full name"
+                   value="<%= values.fullName %>"
+                   minlength="2" autocomplete="name" required>
+
+            <input class="field" type="email" name="email" placeholder="Email"
+                   value="<%= values.email %>"
+                   autocomplete="email" required>
+
+            <input class="field" type="password" name="password" placeholder="Password"
+                   minlength="6" autocomplete="new-password" required>
+
+            <input class="field" type="password" name="confirmPassword"
+                   placeholder="Confirm password"
+                   minlength="6" autocomplete="new-password" required>
+
+            <button class="btn btn-primary" type="submit">Sign up</button>
+
+            <a class="link-center" href="/">Already have an account? Log in</a>
+
+            <p class="byline">Final project &middot; Web Application Development</p>
+        </form>
+    </aside>
+
+</div>
+
+<%- include('../partials/footer') %>
