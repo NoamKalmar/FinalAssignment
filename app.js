@@ -60,9 +60,19 @@ app.use((req, res, next) => {
 //    that signature is how Express recognises it as an error handler.
 app.use(errorHandler);
 
-// Start listening only after the database is up.
-connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server running -> http://localhost:${PORT}`);
+// Start listening only after the database is up and the indexes exist.
+const models = [
+    require('./models/User'),
+    require('./models/Group'),
+    require('./models/Post'),
+    require('./models/Place')
+];
+
+connectDB()
+    .then(() => Promise.all(models.map(m => m.createIndexes())))
+    .then(() => {
+        console.log('Indexes ready ->', models.map(m => m.COLLECTION).join(', '));
+        app.listen(PORT, () => {
+            console.log(`Server running -> http://localhost:${PORT}`);
+        });
     });
-});
