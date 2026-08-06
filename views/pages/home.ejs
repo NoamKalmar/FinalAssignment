@@ -1,29 +1,41 @@
-<%- include('../partials/header') %>
+<%- include('../partials/head') %>
 
-<section class="hero">
-    <h1>SocialNet</h1>
-    <p class="lead">רשת חברתית לקבוצות, פוסטים ומקומות</p>
+<div class="split">
 
-    <% if (!currentUser) { %>
-        <p><a class="btn" href="/register">הצטרפו עכשיו</a></p>
-    <% } else { %>
-        <p><a class="btn" href="/feed">לפיד שלי</a></p>
-    <% } %>
-</section>
+    <section class="panel">
+        <span class="wordmark">SocialNet</span>
+        <h2 class="headline">
+            Everything happening<br>
+            in <em>your groups</em>.
+        </h2>
+    </section>
 
-<section class="cards">
-    <article class="card">
-        <h2>קבוצות</h2>
-        <p>הצטרפו לקבוצות לפי תחומי עניין, או פתחו קבוצה משלכם ונהלו אותה.</p>
-    </article>
-    <article class="card">
-        <h2>פוסטים</h2>
-        <p>שתפו טקסט, תמונות וסרטונים עם החברים והקבוצות שלכם.</p>
-    </article>
-    <article class="card">
-        <h2>מקומות</h2>
-        <p>סמנו מקומות על המפה וגלו מה קורה סביבכם.</p>
-    </article>
-</section>
+    <aside class="sidebar">
+        <!-- The login form is wired up in M1. Markup only for now. -->
+        <form class="form" method="POST" action="/login">
+            <h1>Log into SocialNet</h1>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-error"><%= error %></div>
+            <% } %>
+
+            <input class="field" type="text" name="username"
+                   placeholder="Username" autocomplete="username" required>
+            <input class="field" type="password" name="password"
+                   placeholder="Password" autocomplete="current-password" required>
+
+            <button class="btn btn-primary" type="submit">Log in</button>
+
+            <a class="link-center" href="/forgot">Forgot password?</a>
+
+            <a href="/register">
+                <button class="btn btn-outline accent" type="button">Create new account</button>
+            </a>
+
+            <p class="byline">Final project &middot; Web Application Development</p>
+        </form>
+    </aside>
+
+</div>
 
 <%- include('../partials/footer') %>

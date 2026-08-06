@@ -1,0 +1,18 @@
+<header>
+    <nav class="nav">
+        <a class="brand" href="/">SocialNet</a>
+        <ul>
+            <% if (currentUser) { %>
+                <li><a href="/feed">Feed</a></li>
+                <li><a href="/groups">Groups</a></li>
+                <li><a href="/places">Places</a></li>
+                <li><a href="/stats">Stats</a></li>
+                <li><a href="/profile"><%= currentUser.username %></a></li>
+                <li><a href="/logout">Log out</a></li>
+            <% } else { %>
+                <li><a href="/">Log in</a></li>
+                <li><a href="/register">Sign up</a></li>
+            <% } %>
+        </ul>
+    </nav>
+</header>
