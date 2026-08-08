@@ -53,7 +53,7 @@ app.use('/', authRoutes);
 
 // 7. 404. Reached only when no route above matched, so it must come after them.
 app.use((req, res, next) => {
-    const err = new Error('הדף המבוקש לא נמצא');
+    const err = new Error('Page not found');
     err.status = 404;
     next(err);
 });
