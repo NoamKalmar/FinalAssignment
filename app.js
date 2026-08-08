@@ -71,9 +71,12 @@ const models = [
 ];
 
 connectDB()
+    // Schema validators first: they create the collection if it is missing,
+    // which the index calls below then rely on.
+    .then(() => Promise.all(models.map(m => m.applySchema())))
     .then(() => Promise.all(models.map(m => m.createIndexes())))
     .then(() => {
-        console.log('Indexes ready ->', models.map(m => m.COLLECTION).join(', '));
+        console.log('Schemas + indexes ready ->', models.map(m => m.COLLECTION).join(', '));
         app.listen(PORT, () => {
             console.log(`Server running -> http://localhost:${PORT}`);
         });

@@ -17,6 +17,43 @@ function collection() {
     return getDB().collection(COLLECTION);
 }
 
+/**
+ * MongoDB's own schema validation. This is a native database feature, not
+ * Mongoose — the database itself rejects documents that do not match, no
+ * matter what wrote them: a controller, the seed script, or someone typing
+ * directly into Compass.
+ *
+ * minLength 60 on passwordHash is deliberate: a bcrypt hash is exactly 60
+ * characters, so a plaintext password can never be stored here.
+ */
+const SCHEMA = {
+    $jsonSchema: {
+        bsonType: 'object',
+        required: ['username', 'passwordHash', 'fullName', 'email', 'friends', 'createdAt'],
+        properties: {
+            username:     { bsonType: 'string', minLength: 3, maxLength: 20 },
+            passwordHash: { bsonType: 'string', minLength: 60, maxLength: 60 },
+            fullName:     { bsonType: 'string', minLength: 2, maxLength: 60 },
+            email:        { bsonType: 'string', pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$' },
+            avatarUrl:    { bsonType: ['string', 'null'] },
+            bio:          { bsonType: 'string', maxLength: 300 },
+            address:      { bsonType: 'object' },
+            friends:      { bsonType: 'array' },
+            createdAt:    { bsonType: 'date' }
+        }
+    }
+};
+
+async function applySchema() {
+    const db = getDB();
+    const exists = await db.listCollections({ name: COLLECTION }).hasNext();
+    if (exists) {
+        await db.command({ collMod: COLLECTION, validator: SCHEMA, validationLevel: 'strict' });
+    } else {
+        await db.createCollection(COLLECTION, { validator: SCHEMA, validationLevel: 'strict' });
+    }
+}
+
 // A unique INDEX is what actually guarantees no two users share a username.
 // Checking "does this username exist?" in a controller can be raced by two
 // simultaneous registrations; the index cannot.
@@ -71,6 +108,7 @@ async function remove(id) {
 
 module.exports = {
     COLLECTION,
+    applySchema,
     createIndexes,
     create,
     findById,

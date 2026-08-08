@@ -26,6 +26,36 @@ function collection() {
     return getDB().collection(COLLECTION);
 }
 
+const SCHEMA = {
+    $jsonSchema: {
+        bsonType: 'object',
+        required: ['author', 'type', 'likes', 'createdAt'],
+        properties: {
+            author:         { bsonType: 'objectId' },
+            group:          { bsonType: ['objectId', 'null'] },
+            // enum is what actually guarantees only the three types in §21.
+            type:           { enum: TYPES },
+            content:        { bsonType: 'string', maxLength: 2000 },
+            mediaUrl:       { bsonType: ['string', 'null'] },
+            tags:           { bsonType: 'array' },
+            place:          { bsonType: ['objectId', 'null'] },
+            likes:          { bsonType: 'array' },
+            sharedToSocial: { bsonType: 'bool' },
+            createdAt:      { bsonType: 'date' }
+        }
+    }
+};
+
+async function applySchema() {
+    const db = getDB();
+    const exists = await db.listCollections({ name: COLLECTION }).hasNext();
+    if (exists) {
+        await db.command({ collMod: COLLECTION, validator: SCHEMA, validationLevel: 'strict' });
+    } else {
+        await db.createCollection(COLLECTION, { validator: SCHEMA, validationLevel: 'strict' });
+    }
+}
+
 async function createIndexes() {
     await collection().createIndex({ author: 1 });
     await collection().createIndex({ group: 1 });
@@ -90,6 +120,7 @@ async function remove(id) {
 
 module.exports = {
     COLLECTION,
+    applySchema,
     TYPES,
     createIndexes,
     create,

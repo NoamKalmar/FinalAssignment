@@ -21,6 +21,33 @@ function collection() {
     return getDB().collection(COLLECTION);
 }
 
+const SCHEMA = {
+    $jsonSchema: {
+        bsonType: 'object',
+        required: ['name', 'owner', 'members', 'createdAt'],
+        properties: {
+            name:        { bsonType: 'string', minLength: 2, maxLength: 60 },
+            description: { bsonType: 'string', maxLength: 500 },
+            category:    { bsonType: 'string' },
+            coverUrl:    { bsonType: ['string', 'null'] },
+            owner:       { bsonType: 'objectId' },
+            members:     { bsonType: 'array' },
+            place:       { bsonType: ['objectId', 'null'] },
+            createdAt:   { bsonType: 'date' }
+        }
+    }
+};
+
+async function applySchema() {
+    const db = getDB();
+    const exists = await db.listCollections({ name: COLLECTION }).hasNext();
+    if (exists) {
+        await db.command({ collMod: COLLECTION, validator: SCHEMA, validationLevel: 'strict' });
+    } else {
+        await db.createCollection(COLLECTION, { validator: SCHEMA, validationLevel: 'strict' });
+    }
+}
+
 async function createIndexes() {
     await collection().createIndex({ name: 1 });
     await collection().createIndex({ category: 1 });
@@ -95,6 +122,7 @@ async function isAdmin(groupId, userId) {
 
 module.exports = {
     COLLECTION,
+    applySchema,
     createIndexes,
     create,
     findById,

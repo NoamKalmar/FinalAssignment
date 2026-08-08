@@ -1,0 +1,60 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:560px">
+
+    <h1 style="font-size:1.4rem">Edit profile</h1>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/profile/edit" style="margin-top:18px">
+
+        <label class="label" for="username">Username</label>
+        <input class="field" id="username" value="<%= user.username %>" disabled>
+        <p style="font-size:.76rem;color:var(--dim);margin:-4px 0 16px">
+            Usernames cannot be changed.
+        </p>
+
+        <label class="label" for="fullName">Full name</label>
+        <input class="field" id="fullName" name="fullName" type="text"
+               value="<%= user.fullName %>" minlength="2" maxlength="60" required>
+
+        <label class="label" for="email">Email</label>
+        <input class="field" id="email" name="email" type="email"
+               value="<%= user.email %>" required>
+
+        <label class="label" for="bio">Bio</label>
+        <input class="field" id="bio" name="bio" type="text"
+               value="<%= user.bio %>" maxlength="300" placeholder="A line about you">
+
+        <label class="label" for="street">Street</label>
+        <input class="field" id="street" name="street" type="text"
+               value="<%= user.address ? user.address.street : '' %>" maxlength="120">
+
+        <label class="label" for="city">City</label>
+        <input class="field" id="city" name="city" type="text"
+               value="<%= user.address ? user.address.city : '' %>" maxlength="60">
+
+        <button class="btn btn-primary" type="submit">Save changes</button>
+        <a href="/profile"><button class="btn btn-outline" type="button">Cancel</button></a>
+    </form>
+
+    <section style="margin-top:44px;padding-top:22px;border-top:1px solid var(--divider)">
+        <h2 style="font-size:1rem;margin:0 0 4px">Delete account</h2>
+        <p style="color:var(--muted);font-size:.85rem;margin:0 0 14px">
+            This removes your account permanently. It cannot be undone.
+        </p>
+        <form method="POST" action="/profile/delete"
+              onsubmit="return confirm('Delete your account permanently? This cannot be undone.')">
+            <button class="btn btn-outline" type="submit"
+                    style="color:var(--danger);border-color:var(--danger)">
+                Delete my account
+            </button>
+        </form>
+    </section>
+
+</main>
+
+<%- include('../partials/footer') %>

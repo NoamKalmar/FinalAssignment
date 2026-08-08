@@ -21,6 +21,34 @@ function collection() {
     return getDB().collection(COLLECTION);
 }
 
+const SCHEMA = {
+    $jsonSchema: {
+        bsonType: 'object',
+        required: ['name', 'lat', 'lng', 'createdBy', 'createdAt'],
+        properties: {
+            name:      { bsonType: 'string', minLength: 2, maxLength: 100 },
+            category:  { bsonType: 'string' },
+            address:   { bsonType: 'string', maxLength: 200 },
+            // Coordinate ranges are enforced by the database, so a bad
+            // geocode can never put a marker off the map.
+            lat:       { bsonType: 'double', minimum: -90,  maximum: 90 },
+            lng:       { bsonType: 'double', minimum: -180, maximum: 180 },
+            createdBy: { bsonType: 'objectId' },
+            createdAt: { bsonType: 'date' }
+        }
+    }
+};
+
+async function applySchema() {
+    const db = getDB();
+    const exists = await db.listCollections({ name: COLLECTION }).hasNext();
+    if (exists) {
+        await db.command({ collMod: COLLECTION, validator: SCHEMA, validationLevel: 'strict' });
+    } else {
+        await db.createCollection(COLLECTION, { validator: SCHEMA, validationLevel: 'strict' });
+    }
+}
+
 async function createIndexes() {
     await collection().createIndex({ name: 1 });
     await collection().createIndex({ category: 1 });
@@ -62,6 +90,7 @@ async function remove(id) {
 
 module.exports = {
     COLLECTION,
+    applySchema,
     createIndexes,
     create,
     findById,
