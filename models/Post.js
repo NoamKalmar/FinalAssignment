@@ -93,6 +93,56 @@ async function findAll() {
     return collection().find({}).sort({ createdAt: -1 }).toArray();
 }
 
+/**
+ * A post stores only `author: ObjectId`. To display it we need the author's
+ * name and username, which live in another collection.
+ *
+ * The MongoDB deck (slide 35) called ObjectId references "MongoDB's
+ * alternative to Join". $lookup is how you follow such a reference inside a
+ * single query, instead of fetching posts and then querying users N times.
+ */
+const WITH_AUTHOR = [
+    {
+        $lookup: {
+            from: 'users',
+            localField: 'author',
+            foreignField: '_id',
+            as: 'authorDoc'
+        }
+    },
+    { $unwind: '$authorDoc' },
+    {
+        // Replace the raw ObjectId with the few author fields a view needs.
+        // passwordHash and email are deliberately left out.
+        $addFields: {
+            author: {
+                _id: '$authorDoc._id',
+                username: '$authorDoc.username',
+                fullName: '$authorDoc.fullName',
+                avatarUrl: '$authorDoc.avatarUrl'
+            }
+        }
+    },
+    { $project: { authorDoc: 0 } }
+];
+
+async function findByIdWithAuthor(id) {
+    const rows = await collection()
+        .aggregate([{ $match: { _id: new ObjectId(id) } }, ...WITH_AUTHOR])
+        .toArray();
+    return rows[0] || null;
+}
+
+async function findByAuthorWithAuthor(userId) {
+    return collection()
+        .aggregate([
+            { $match: { author: new ObjectId(userId) } },
+            { $sort: { createdAt: -1 } },
+            ...WITH_AUTHOR
+        ])
+        .toArray();
+}
+
 // "My posts" (§27).
 async function findByAuthor(userId) {
     return collection()
@@ -125,8 +175,10 @@ module.exports = {
     createIndexes,
     create,
     findById,
+    findByIdWithAuthor,
     findAll,
     findByAuthor,
+    findByAuthorWithAuthor,
     findByGroup,
     update,
     remove

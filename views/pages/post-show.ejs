@@ -1,0 +1,12 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:640px">
+
+    <p style="margin:0 0 14px"><a class="back" href="/posts/mine">&larr; Back to my posts</a></p>
+
+    <%- include('../partials/post-card', { post }) %>
+
+</main>
+
+<%- include('../partials/footer') %>

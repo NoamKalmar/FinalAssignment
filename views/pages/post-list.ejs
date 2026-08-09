@@ -1,0 +1,22 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:640px">
+
+    <div class="list-head">
+        <h1 style="font-size:1.4rem;margin:0"><%= heading %></h1>
+        <a href="/posts/new"><button class="btn btn-primary btn-inline">New post</button></a>
+    </div>
+
+    <% if (!posts.length) { %>
+        <p class="empty-state"><%= empty %></p>
+    <% } else { %>
+        <p class="count"><%= posts.length %> post<%= posts.length === 1 ? '' : 's' %></p>
+        <% posts.forEach(post => { %>
+            <%- include('../partials/post-card', { post }) %>
+        <% }) %>
+    <% } %>
+
+</main>
+
+<%- include('../partials/footer') %>

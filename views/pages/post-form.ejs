@@ -1,0 +1,76 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:620px">
+
+    <h1 style="font-size:1.4rem"><%= mode === 'new' ? 'New post' : 'Edit post' %></h1>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <%# enctype is REQUIRED for file uploads — without it the browser sends
+        only the field names and multer receives nothing. %>
+    <form method="POST"
+          action="<%= mode === 'new' ? '/posts' : '/posts/' + post._id + '/edit' %>"
+          enctype="multipart/form-data" style="margin-top:18px">
+
+        <label class="label" for="type">Post type</label>
+        <select class="field" id="type" name="type" required>
+            <option value="text"  <%= post.type === 'text'  ? 'selected' : '' %>>Text only</option>
+            <option value="image" <%= post.type === 'image' ? 'selected' : '' %>>Text + image</option>
+            <option value="video" <%= post.type === 'video' ? 'selected' : '' %>>Text + video</option>
+        </select>
+
+        <label class="label" for="content">What's on your mind?</label>
+        <textarea class="field textarea" id="content" name="content"
+                  maxlength="2000" required rows="5"><%= post.content %></textarea>
+
+        <div id="media-section" hidden>
+            <label class="label" for="mediaFile">Upload a file</label>
+            <input class="field file" id="mediaFile" name="mediaFile" type="file"
+                   accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm">
+            <p class="hint">JPG, PNG, GIF, WEBP, MP4 or WEBM. Up to 3 MB.</p>
+
+            <div class="or-line">or</div>
+
+            <label class="label" for="mediaUrl">Paste a link</label>
+            <input class="field" id="mediaUrl" name="mediaUrl" type="url"
+                   value="<%= post.mediaUrl && !post.mediaUrl.startsWith('/media/') ? post.mediaUrl : '' %>"
+                   placeholder="https://example.com/photo.jpg">
+            <p class="hint">Either works. Uploads are stored in the database, so everyone sees them.</p>
+
+            <% if (post.mediaUrl) { %>
+                <p class="hint">Current: <code><%= post.mediaUrl %></code> — leave both blank to keep it.</p>
+            <% } %>
+        </div>
+
+        <label class="label" for="tags">Tags</label>
+        <input class="field" id="tags" name="tags" type="text"
+               value="<%= (post.tags || []).join(', ') %>"
+               placeholder="travel, food, code">
+        <p class="hint">Comma separated, up to 10.</p>
+
+        <button class="btn btn-primary" type="submit">
+            <%= mode === 'new' ? 'Publish' : 'Save changes' %>
+        </button>
+        <a href="<%= mode === 'new' ? '/posts/mine' : '/posts/' + post._id %>">
+            <button class="btn btn-outline" type="button">Cancel</button>
+        </a>
+    </form>
+
+</main>
+
+<script>
+    // Media fields only make sense for image and video posts.
+    // Progressive enhancement: the server validates regardless of this.
+    (function () {
+        var type = document.getElementById('type');
+        var media = document.getElementById('media-section');
+        function sync() { media.hidden = (type.value === 'text'); }
+        type.addEventListener('change', sync);
+        sync();
+    })();
+</script>
+
+<%- include('../partials/footer') %>

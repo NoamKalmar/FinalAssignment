@@ -10,6 +10,8 @@ const { connectDB } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
+const postRoutes = require('./routes/posts');
+const mediaRoutes = require('./routes/media');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,6 +52,8 @@ app.use((req, res, next) => {
 // 6. Application routes
 app.use('/', indexRoutes);
 app.use('/', authRoutes);
+app.use('/posts', postRoutes);
+app.use('/media', mediaRoutes);
 
 // 7. 404. Reached only when no route above matched, so it must come after them.
 app.use((req, res, next) => {
@@ -67,7 +71,8 @@ const models = [
     require('./models/User'),
     require('./models/Group'),
     require('./models/Post'),
-    require('./models/Place')
+    require('./models/Place'),
+    require('./models/Media')
 ];
 
 connectDB()

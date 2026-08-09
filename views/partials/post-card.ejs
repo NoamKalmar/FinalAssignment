@@ -1,0 +1,49 @@
+<%
+/* Reusable post card.
+   Used by /posts/mine now, and by the group pages (M3) and the feed (M4).
+   Expects: post (with post.author expanded), and currentUser from res.locals. */
+const isMine = currentUser && String(post.author._id) === String(currentUser._id);
+const initials = (post.author.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+%>
+<article class="post">
+
+    <header class="post-head">
+        <div class="avatar"><%= initials %></div>
+        <div>
+            <div class="post-author"><%= post.author.fullName %></div>
+            <div class="post-meta">
+                @<%= post.author.username %>
+                &middot; <%= post.createdAt.toLocaleDateString('en-GB') %>
+                <%= post.createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) %>
+            </div>
+        </div>
+        <span class="post-type"><%= post.type %></span>
+    </header>
+
+    <p class="post-content"><%= post.content %></p>
+
+    <% if (post.type === 'image' && post.mediaUrl) { %>
+        <img class="post-media" src="<%= post.mediaUrl %>" alt="">
+    <% } else if (post.type === 'video' && post.mediaUrl) { %>
+        <%# §31.i — the <video> element %>
+        <video class="post-media" src="<%= post.mediaUrl %>" controls preload="metadata"></video>
+    <% } %>
+
+    <% if (post.tags && post.tags.length) { %>
+        <p class="post-tags">
+            <% post.tags.forEach(tag => { %><span class="tag">#<%= tag %></span><% }) %>
+        </p>
+    <% } %>
+
+    <footer class="post-actions">
+        <a href="/posts/<%= post._id %>">Open</a>
+        <% if (isMine) { %>
+            <a href="/posts/<%= post._id %>/edit">Edit</a>
+            <form method="POST" action="/posts/<%= post._id %>/delete"
+                  onsubmit="return confirm('Delete this post?')">
+                <button type="submit" class="linklike danger">Delete</button>
+            </form>
+        <% } %>
+    </footer>
+
+</article>
