@@ -1,5 +1,6 @@
 const Post = require('../models/Post');
 const Media = require('../models/Media');
+const Group = require('../models/Group');
 
 /**
  * Media reaches a post two ways:
@@ -54,6 +55,15 @@ function parseTags(raw) {
         .slice(0, 10);
 }
 
+// A user may only post into a group they belong to. Without this check a
+// crafted form could drop a post into any group.
+async function resolveGroup(req) {
+    const id = (req.body.group || '').trim();
+    if (!id) return null;
+    const mine = await Group.findByMember(req.session.user._id);
+    return mine.some(g => String(g._id) === id) ? id : null;
+}
+
 function notFound() {
     const err = new Error('Post not found');
     err.status = 404;
@@ -66,12 +76,17 @@ function isBadId(err) {
 }
 
 // GET /posts/new
-const showNew = (req, res) => {
-    res.render('pages/post-form', {
-        title: 'New post — SocialNet',
-        mode: 'new',
-        post: { type: 'text', content: '', mediaUrl: '', tags: [] }
-    });
+const showNew = async (req, res, next) => {
+    try {
+        const myGroups = await Group.findByMember(req.session.user._id);
+        res.render('pages/post-form', {
+            title: 'New post — SocialNet',
+            mode: 'new',
+            myGroups,
+            // ?group=<id> arrives from the "Post here" button on a group page
+            post: { type: 'text', content: '', mediaUrl: '', tags: [], group: req.query.group || '' }
+        });
+    } catch (err) { next(err); }
 };
 
 // POST /posts
@@ -84,7 +99,7 @@ const create = async (req, res, next) => {
         if (errors.length) {
             await dropMedia(mediaUrl);
             return res.status(400).render('pages/post-form', {
-                title: 'New post — SocialNet', mode: 'new', error: errors[0],
+                title: 'New post — SocialNet', mode: 'new', error: errors[0], myGroups: await Group.findByMember(req.session.user._id),
                 post: {
                     type: req.body.type,
                     content: req.body.content,
@@ -96,7 +111,7 @@ const create = async (req, res, next) => {
 
         const post = await Post.create({
             author: req.session.user._id,
-            group: null,                  // group posts arrive in M3
+            group: await resolveGroup(req),
             type: req.body.type,
             content: req.body.content.trim(),
             mediaUrl,
@@ -137,12 +152,13 @@ const mine = async (req, res, next) => {
 };
 
 // GET /posts/:id/edit  — isOwner already loaded the post into req.doc
-const showEdit = (req, res) => {
-    res.render('pages/post-form', {
-        title: 'Edit post — SocialNet',
-        mode: 'edit',
-        post: req.doc
-    });
+const showEdit = async (req, res, next) => {
+    try {
+        const myGroups = await Group.findByMember(req.session.user._id);
+        res.render('pages/post-form', {
+            title: 'Edit post — SocialNet', mode: 'edit', myGroups, post: req.doc
+        });
+    } catch (err) { next(err); }
 };
 
 // POST /posts/:id/edit
@@ -157,7 +173,7 @@ const update = async (req, res, next) => {
         if (errors.length) {
             await dropMedia(newMedia);
             return res.status(400).render('pages/post-form', {
-                title: 'Edit post — SocialNet', mode: 'edit', error: errors[0],
+                title: 'Edit post — SocialNet', mode: 'edit', error: errors[0], myGroups: await Group.findByMember(req.session.user._id),
                 post: { ...existing, type: req.body.type, content: req.body.content }
             });
         }
@@ -168,6 +184,7 @@ const update = async (req, res, next) => {
         }
 
         await Post.update(req.params.id, {
+            group: await resolveGroup(req),
             type: req.body.type,
             content: req.body.content.trim(),
             mediaUrl,

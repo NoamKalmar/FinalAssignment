@@ -1,0 +1,104 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:900px">
+
+    <p style="margin:0 0 14px"><a class="back" href="/groups">&larr; All groups</a></p>
+
+    <header class="group-header">
+        <div>
+            <h1><%= group.name %></h1>
+            <p class="group-cat"><%= group.category %> &middot;
+               <%= group.members.length %> member<%= group.members.length === 1 ? '' : 's' %>
+               <% if (isAdmin) { %><span class="badge admin">You are an admin</span><% } %>
+            </p>
+            <p class="group-desc"><%= group.description || 'No description.' %></p>
+        </div>
+
+        <div class="group-actions">
+            <% if (!isMember) { %>
+                <form method="POST" action="/groups/<%= group._id %>/join">
+                    <button class="btn btn-primary btn-inline" type="submit">Join group</button>
+                </form>
+            <% } else { %>
+                <form method="POST" action="/groups/<%= group._id %>/leave"
+                      onsubmit="return confirm('Leave this group?')">
+                    <button class="btn btn-outline btn-inline" type="submit">Leave</button>
+                </form>
+            <% } %>
+
+            <%# §26 — these appear only for admins, and isGroupAdmin enforces it server-side %>
+            <% if (isAdmin) { %>
+                <a href="/groups/<%= group._id %>/edit">
+                    <button class="btn btn-outline btn-inline" type="button">Edit</button>
+                </a>
+                <form method="POST" action="/groups/<%= group._id %>/delete"
+                      onsubmit="return confirm('Delete this group? Its posts become personal posts.')">
+                    <button class="btn btn-outline btn-inline danger-btn" type="submit">Delete</button>
+                </form>
+            <% } %>
+        </div>
+    </header>
+
+    <div class="group-body">
+
+        <section class="group-posts">
+            <div class="list-head">
+                <h2 style="font-size:1.05rem;margin:0">Posts</h2>
+                <% if (isMember) { %>
+                    <a href="/posts/new?group=<%= group._id %>">
+                        <button class="btn btn-primary btn-inline" type="button">Post here</button>
+                    </a>
+                <% } %>
+            </div>
+
+            <% if (!posts.length) { %>
+                <p class="empty-state">
+                    <%= isMember ? 'Nothing posted here yet.' : 'Join to post in this group.' %>
+                </p>
+            <% } else { %>
+                <% posts.forEach(post => { %>
+                    <%- include('../partials/post-card', { post }) %>
+                <% }) %>
+            <% } %>
+        </section>
+
+        <aside class="group-members">
+            <h2 style="font-size:.82rem;color:var(--muted);letter-spacing:1px;margin:0 0 12px">
+                MEMBERS
+            </h2>
+            <% group.members.forEach(m => { %>
+                <div class="member-row">
+                    <div class="avatar sm">
+                        <%= (m.user.fullName || '?').split(' ').map(w => w[0]).slice(0,2).join('') %>
+                    </div>
+                    <div class="member-name">
+                        <%= m.user.fullName %>
+                        <span class="member-handle">@<%= m.user.username %></span>
+                    </div>
+                    <% if (m.role === 'admin') { %><span class="badge admin">admin</span><% } %>
+
+                    <% if (isAdmin && String(m.user._id) !== String(currentUser._id)) { %>
+                        <span class="member-tools">
+                            <% if (m.role !== 'admin') { %>
+                                <form method="POST"
+                                      action="/groups/<%= group._id %>/members/<%= m.user._id %>/promote">
+                                    <button class="linklike" type="submit" title="Make admin">promote</button>
+                                </form>
+                            <% } %>
+                            <form method="POST"
+                                  action="/groups/<%= group._id %>/members/<%= m.user._id %>/remove"
+                                  onsubmit="return confirm('Remove <%= m.user.username %> from the group?')">
+                                <button class="linklike danger" type="submit">remove</button>
+                            </form>
+                        </span>
+                    <% } %>
+                </div>
+            <% }) %>
+        </aside>
+
+    </div>
+
+</main>
+
+<%- include('../partials/footer') %>

@@ -22,6 +22,19 @@
             <option value="video" <%= post.type === 'video' ? 'selected' : '' %>>Text + video</option>
         </select>
 
+        <label class="label" for="group">Post to</label>
+        <select class="field" id="group" name="group">
+            <option value="">My wall (personal post)</option>
+            <% myGroups.forEach(g => { %>
+                <option value="<%= g._id %>" <%= String(post.group) === String(g._id) ? 'selected' : '' %>>
+                    <%= g.name %>
+                </option>
+            <% }) %>
+        </select>
+        <% if (!myGroups.length) { %>
+            <p class="hint">Join a group to post into it.</p>
+        <% } %>
+
         <label class="label" for="content">What's on your mind?</label>
         <textarea class="field textarea" id="content" name="content"
                   maxlength="2000" required rows="5"><%= post.content %></textarea>

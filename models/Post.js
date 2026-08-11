@@ -123,7 +123,20 @@ const WITH_AUTHOR = [
             }
         }
     },
-    { $project: { authorDoc: 0 } }
+    // Second lookup: the group's name, so a card can say "in Web Dev 2026".
+    // preserveNullAndEmptyArrays keeps personal posts (group === null), which
+    // would otherwise be dropped entirely by $unwind.
+    {
+        $lookup: {
+            from: 'groups',
+            localField: 'group',
+            foreignField: '_id',
+            as: 'groupDoc'
+        }
+    },
+    { $unwind: { path: '$groupDoc', preserveNullAndEmptyArrays: true } },
+    { $addFields: { groupName: '$groupDoc.name' } },
+    { $project: { authorDoc: 0, groupDoc: 0 } }
 ];
 
 async function findByIdWithAuthor(id) {
@@ -131,6 +144,31 @@ async function findByIdWithAuthor(id) {
         .aggregate([{ $match: { _id: new ObjectId(id) } }, ...WITH_AUTHOR])
         .toArray();
     return rows[0] || null;
+}
+
+// Everything posted into one group, for the group page.
+async function findByGroupWithAuthor(groupId) {
+    return collection()
+        .aggregate([
+            { $match: { group: new ObjectId(groupId) } },
+            { $sort: { createdAt: -1 } },
+            ...WITH_AUTHOR
+        ])
+        .toArray();
+}
+
+/**
+ * Deleting a group must not orphan its posts — they would keep a `group`
+ * reference pointing at a document that no longer exists, and the feed would
+ * try to resolve it. Setting group back to null turns them into ordinary
+ * personal posts, which is kinder than deleting other people's content.
+ */
+async function detachFromGroup(groupId) {
+    const result = await collection().updateMany(
+        { group: new ObjectId(groupId) },
+        { $set: { group: null } }
+    );
+    return result.modifiedCount;
 }
 
 async function findByAuthorWithAuthor(userId) {
@@ -159,7 +197,14 @@ async function findByGroup(groupId) {
 }
 
 async function update(id, fields) {
-    await collection().updateOne({ _id: new ObjectId(id) }, { $set: fields });
+    // Reference fields arrive from a form as strings. The $jsonSchema
+    // validator demands real ObjectIds, so convert here — type handling is
+    // the model's job, not the controller's.
+    const doc = { ...fields };
+    if ('group' in doc) doc.group = doc.group ? new ObjectId(doc.group) : null;
+    if ('place' in doc) doc.place = doc.place ? new ObjectId(doc.place) : null;
+
+    await collection().updateOne({ _id: new ObjectId(id) }, { $set: doc });
     return findById(id);
 }
 
@@ -180,6 +225,8 @@ module.exports = {
     findByAuthor,
     findByAuthorWithAuthor,
     findByGroup,
+    findByGroupWithAuthor,
+    detachFromGroup,
     update,
     remove
 };

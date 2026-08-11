@@ -1,0 +1,46 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:560px">
+
+    <h1 style="font-size:1.4rem"><%= mode === 'new' ? 'New group' : 'Edit group' %></h1>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <form method="POST"
+          action="<%= mode === 'new' ? '/groups' : '/groups/' + group._id + '/edit' %>"
+          style="margin-top:18px">
+
+        <label class="label" for="name">Group name</label>
+        <input class="field" id="name" name="name" type="text"
+               value="<%= group.name %>" minlength="2" maxlength="60" required>
+
+        <label class="label" for="category">Category</label>
+        <input class="field" id="category" name="category" type="text"
+               value="<%= group.category %>" maxlength="40"
+               placeholder="study, travel, photography…">
+
+        <label class="label" for="description">Description</label>
+        <textarea class="field textarea" id="description" name="description"
+                  rows="4" maxlength="500"><%= group.description %></textarea>
+        <p class="hint">Up to 500 characters.</p>
+
+        <button class="btn btn-primary" type="submit">
+            <%= mode === 'new' ? 'Create group' : 'Save changes' %>
+        </button>
+        <a href="<%= mode === 'new' ? '/groups' : '/groups/' + group._id %>">
+            <button class="btn btn-outline" type="button">Cancel</button>
+        </a>
+    </form>
+
+    <% if (mode === 'new') { %>
+        <p class="hint" style="margin-top:18px">
+            You become the group's first admin. Anyone can join afterwards.
+        </p>
+    <% } %>
+
+</main>
+
+<%- include('../partials/footer') %>

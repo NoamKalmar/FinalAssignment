@@ -12,6 +12,7 @@ const indexRoutes = require('./routes/index');
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const mediaRoutes = require('./routes/media');
+const groupRoutes = require('./routes/groups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,6 +55,7 @@ app.use('/', indexRoutes);
 app.use('/', authRoutes);
 app.use('/posts', postRoutes);
 app.use('/media', mediaRoutes);
+app.use('/groups', groupRoutes);
 
 // 7. 404. Reached only when no route above matched, so it must come after them.
 app.use((req, res, next) => {

@@ -79,6 +79,53 @@ async function findAll() {
     return collection().find({}).sort({ createdAt: -1 }).toArray();
 }
 
+// Group list: add a member count without dragging the whole members array
+// into the view.
+async function findAllSummary() {
+    return collection()
+        .aggregate([
+            { $addFields: { memberCount: { $size: '$members' } } },
+            { $project: { members: 0 } },
+            { $sort: { createdAt: -1 } }
+        ])
+        .toArray();
+}
+
+/**
+ * A group stores members as ObjectId references, so the member list has no
+ * names in it. Two queries resolve that:
+ *   1. fetch the group
+ *   2. fetch those users with $in, projecting only the fields a view needs
+ *
+ * Deliberately not one $lookup aggregation — two plain queries are easier to
+ * read and to explain, and $in was covered in the MongoDB lecture.
+ */
+async function findByIdWithMembers(id) {
+    const group = await findById(id);
+    if (!group) return null;
+
+    const users = await getDB()
+        .collection('users')
+        .find({ _id: { $in: group.members.map(m => m.user) } })
+        .project({ username: 1, fullName: 1 })   // never passwordHash or email
+        .toArray();
+
+    const byId = new Map(users.map(u => [String(u._id), u]));
+
+    group.members = group.members
+        .map(m => ({ ...m, user: byId.get(String(m.user)) || null }))
+        .filter(m => m.user)                              // skip deleted accounts
+        .sort((a, b) => (a.role === b.role ? 0 : a.role === 'admin' ? -1 : 1));
+
+    return group;
+}
+
+// Is this user a member at all, whatever their role?
+function membershipOf(group, userId) {
+    if (!group || !userId) return null;
+    return group.members.find(m => String(m.user._id || m.user) === String(userId)) || null;
+}
+
 // Every group a given user belongs to — used to build the feed (§27).
 async function findByMember(userId) {
     return collection().find({ 'members.user': new ObjectId(userId) }).toArray();
@@ -111,6 +158,23 @@ async function removeMember(groupId, userId) {
     return findById(groupId);
 }
 
+// §26 — admins may promote another member. A group can have several admins.
+async function setRole(groupId, userId, role) {
+    await collection().updateOne(
+        { _id: new ObjectId(groupId), 'members.user': new ObjectId(userId) },
+        { $set: { 'members.$.role': role } }   // $ is the matched array element
+    );
+    return findById(groupId);
+}
+
+// Count admins, so the last one cannot demote or remove themselves and leave
+// the group unmanageable.
+async function adminCount(groupId) {
+    const g = await findById(groupId);
+    if (!g) return 0;
+    return g.members.filter(m => m.role === 'admin').length;
+}
+
 // Used by the isGroupAdmin middleware in M3 (§26).
 async function isAdmin(groupId, userId) {
     const found = await collection().findOne({
@@ -127,6 +191,11 @@ module.exports = {
     create,
     findById,
     findAll,
+    findAllSummary,
+    findByIdWithMembers,
+    membershipOf,
+    setRole,
+    adminCount,
     findByMember,
     update,
     remove,

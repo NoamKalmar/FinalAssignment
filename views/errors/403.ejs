@@ -2,8 +2,8 @@
 <%- include('../partials/nav') %>
 
 <section class="error-page">
-    <h1 class="error-code">403</h1>
-    <p class="error-text">You don't have permission to view this page.</p>
+    <h1 class="error-code"><%= typeof status !== 'undefined' ? status : 403 %></h1>
+    <p class="error-text"><%= message %></p>
     <a href="/"><button class="btn btn-outline btn-inline">Back to home</button></a>
 </section>
 

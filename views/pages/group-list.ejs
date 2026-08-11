@@ -1,0 +1,42 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:760px">
+
+    <div class="list-head">
+        <h1 style="font-size:1.4rem;margin:0">Groups</h1>
+        <a href="/groups/new"><button class="btn btn-primary btn-inline">New group</button></a>
+    </div>
+
+    <% if (!groups.length) { %>
+        <p class="empty-state">No groups yet. Create the first one.</p>
+    <% } else { %>
+        <p class="count"><%= groups.length %> group<%= groups.length === 1 ? '' : 's' %></p>
+
+        <div class="group-grid">
+        <% groups.forEach(g => { %>
+            <article class="group-card">
+                <div class="group-card-top">
+                    <h2><a href="/groups/<%= g._id %>"><%= g.name %></a></h2>
+                    <% if (g.joined) { %><span class="badge">Joined</span><% } %>
+                </div>
+                <p class="group-cat"><%= g.category %></p>
+                <p class="group-desc"><%= g.description || 'No description.' %></p>
+                <footer class="group-card-foot">
+                    <span><%= g.memberCount %> member<%= g.memberCount === 1 ? '' : 's' %></span>
+                    <% if (!g.joined) { %>
+                        <form method="POST" action="/groups/<%= g._id %>/join">
+                            <button class="btn btn-outline accent btn-inline" type="submit">Join</button>
+                        </form>
+                    <% } else { %>
+                        <a href="/groups/<%= g._id %>">Open &rarr;</a>
+                    <% } %>
+                </footer>
+            </article>
+        <% }) %>
+        </div>
+    <% } %>
+
+</main>
+
+<%- include('../partials/footer') %>
