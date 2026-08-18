@@ -9,7 +9,7 @@ const feed = (req, res) => {
 // GET /profile
 const profile = async (req, res, next) => {
     try {
-        const user = await User.findById(req.session.user._id);
+        const user = await User.findByIdWithFriends(req.session.user._id);
         if (!user) {
             // Session points at a user who no longer exists — e.g. the account
             // was deleted while they were logged in. Clear it and start over.

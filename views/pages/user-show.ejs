@@ -1,0 +1,96 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<%
+const initials = (user.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+const friendCount = (user.friendsList && user.friendsList.length) || (user.friends && user.friends.length) || 0;
+%>
+
+<main class="container">
+
+    <div style="margin-bottom:14px">
+        <a class="back" href="javascript:history.back()">&larr; Back</a>
+    </div>
+
+    <div class="profile-header">
+        <div class="profile-head-info">
+            <div class="avatar lg"><%= initials %></div>
+            <div>
+                <h1 style="margin:0 0 4px"><%= user.fullName %></h1>
+                <p style="color:var(--muted);margin:0">@<%= user.username %></p>
+            </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px">
+            <% if (isFriend) { %>
+                <span class="badge" style="color:var(--accent);border-color:#2f4a86;padding:6px 14px;font-size:.8rem">
+                    ✓ Friends
+                </span>
+                <form method="POST" action="/friends/<%= user._id %>/remove"
+                      onsubmit="return confirm('Remove <%= user.fullName %> from your friends?')">
+                    <button type="submit" class="btn btn-outline btn-inline danger-btn" style="margin:0;padding:7px 16px;font-size:.84rem">
+                        Remove friend
+                    </button>
+                </form>
+            <% } else { %>
+                <form method="POST" action="/friends/<%= user._id %>/add">
+                    <button type="submit" class="btn btn-primary btn-inline" style="margin:0;padding:8px 20px;font-size:.88rem">
+                        + Add friend
+                    </button>
+                </form>
+            <% } %>
+        </div>
+    </div>
+
+    <section style="margin-top:16px;padding:20px;border:1px solid var(--divider);
+                    border-radius:var(--radius);background:var(--surface)">
+        <% if (user.address && (user.address.city || user.address.street)) { %>
+            <p style="margin:0 0 8px"><strong>Location:</strong>
+                <%= [user.address.street, user.address.city].filter(Boolean).join(', ') %>
+            </p>
+        <% } %>
+        <p style="margin:0 0 8px"><strong>Bio:</strong>
+            <%= user.bio || 'No bio provided yet.' %></p>
+        <p style="margin:0"><strong>Joined:</strong>
+            <%= user.createdAt.toLocaleDateString('en-GB') %></p>
+    </section>
+
+    <section style="margin-top:20px;padding:20px;border:1px solid var(--divider);
+                    border-radius:var(--radius);background:var(--surface)">
+        <h2 style="margin:0 0 12px;font-size:1.05rem">Friends (<%= friendCount %>)</h2>
+        <% if (user.friendsList && user.friendsList.length > 0) { %>
+            <div class="chips">
+                <% user.friendsList.slice(0, 12).forEach(f => {
+                    const fInitials = (f.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+                %>
+                    <a href="/users/<%= f._id %>" class="chip">
+                        <span class="avatar"><%= fInitials %></span>
+                        <span><%= f.fullName %></span>
+                    </a>
+                <% }) %>
+                <% if (friendCount > 12) { %>
+                    <span class="chip" style="color:var(--muted)">+<%= friendCount - 12 %> more</span>
+                <% } %>
+            </div>
+        <% } else { %>
+            <p style="color:var(--muted);font-size:.88rem;margin:0">No friends to show.</p>
+        <% } %>
+    </section>
+
+    <section style="margin-top:28px">
+        <h2 style="font-size:1.15rem;margin:0 0 14px"><%= user.fullName %>'s Posts (<%= posts.length %>)</h2>
+
+        <% if (posts.length === 0) { %>
+            <div class="empty-state">
+                <p style="margin:0"><%= user.fullName %> hasn't posted anything yet.</p>
+            </div>
+        <% } else { %>
+            <% posts.forEach(post => { %>
+                <%- include('../partials/post-card', { post }) %>
+            <% }) %>
+        <% } %>
+    </section>
+
+</main>
+
+<%- include('../partials/footer') %>
