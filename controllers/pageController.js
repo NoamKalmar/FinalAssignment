@@ -1,15 +1,40 @@
 const User = require('../models/User');
+const Group = require('../models/Group');
+const Post = require('../models/Post');
 
-// GET /feed  — placeholder. The real feed is M4 (§27).
-// It exists now so the login flow can be demonstrated end to end.
-const feed = (req, res) => {
-    res.render('pages/feed', { title: 'Feed — SocialNet' });
+// GET /feed — Main activity feed (§27)
+const feed = async (req, res, next) => {
+    try {
+        const userId = req.session.user._id;
+        const [user, joinedGroups] = await Promise.all([
+            User.findById(userId),
+            Group.findByMember(userId)
+        ]);
+
+        const friendIds = (user && user.friends) || [];
+        const groupIds = joinedGroups.map(g => g._id);
+
+        const posts = await Post.findFeedPosts({
+            userId,
+            friendIds,
+            groupIds
+        });
+
+        res.render('pages/feed', {
+            title: 'Feed — SocialNet',
+            posts,
+            friendCount: friendIds.length,
+            groupCount: groupIds.length
+        });
+    } catch (err) {
+        next(err);
+    }
 };
 
 // GET /profile
 const profile = async (req, res, next) => {
     try {
-        const user = await User.findById(req.session.user._id);
+        const user = await User.findByIdWithFriends(req.session.user._id);
         if (!user) {
             // Session points at a user who no longer exists — e.g. the account
             // was deleted while they were logged in. Clear it and start over.

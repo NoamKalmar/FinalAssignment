@@ -60,6 +60,7 @@ async function applySchema() {
 async function createIndexes() {
     await collection().createIndex({ username: 1 }, { unique: true });
     await collection().createIndex({ fullName: 1 });
+    await collection().createIndex({ friends: 1 });
 }
 
 async function create(user) {
@@ -102,8 +103,125 @@ async function update(id, fields) {
 }
 
 async function remove(id) {
-    const result = await collection().deleteOne({ _id: new ObjectId(id) });
+    const userObjId = new ObjectId(id);
+    // Remove this user from all other users' friends arrays so no dangling IDs remain.
+    await collection().updateMany(
+        { friends: userObjId },
+        { $pull: { friends: userObjId } }
+    );
+    const result = await collection().deleteOne({ _id: userObjId });
     return result.deletedCount === 1;
+}
+
+// Mutual friendship: add to both users' friends array atomically.
+async function addFriend(userId, friendId) {
+    const uId = new ObjectId(userId);
+    const fId = new ObjectId(friendId);
+
+    if (uId.equals(fId)) {
+        throw new Error('Cannot add yourself as a friend.');
+    }
+
+    await collection().updateOne(
+        { _id: uId },
+        { $addToSet: { friends: fId } }
+    );
+    await collection().updateOne(
+        { _id: fId },
+        { $addToSet: { friends: uId } }
+    );
+
+    return findById(userId);
+}
+
+// Mutual friendship removal: pull from both users' friends array.
+async function removeFriend(userId, friendId) {
+    const uId = new ObjectId(userId);
+    const fId = new ObjectId(friendId);
+
+    await collection().updateOne(
+        { _id: uId },
+        { $pull: { friends: fId } }
+    );
+    await collection().updateOne(
+        { _id: fId },
+        { $pull: { friends: uId } }
+    );
+
+    return findById(userId);
+}
+
+async function isFriend(userId, targetUserId) {
+    const user = await findById(userId);
+    if (!user || !user.friends) return false;
+    const targetStr = String(targetUserId);
+    return user.friends.some(f => String(f) === targetStr);
+}
+
+// Returns the populated friend documents for a given user.
+async function getFriends(userId, search = '') {
+    const user = await findById(userId);
+    if (!user || !user.friends || user.friends.length === 0) return [];
+
+    const query = {
+        _id: { $in: user.friends }
+    };
+
+    if (search && search.trim()) {
+        const term = search.trim();
+        query.$or = [
+            { username: { $regex: term, $options: 'i' } },
+            { fullName: { $regex: term, $options: 'i' } }
+        ];
+    }
+
+    return collection()
+        .find(query)
+        .project({ username: 1, fullName: 1, avatarUrl: 1, bio: 1, address: 1, createdAt: 1 })
+        .sort({ fullName: 1 })
+        .toArray();
+}
+
+// Finds other registered users that the user is NOT yet friends with (excluding self).
+async function findDiscoverable(currentUserId, search = '', limit = 30) {
+    const user = await findById(currentUserId);
+    const excludeIds = [new ObjectId(currentUserId), ...((user && user.friends) || [])];
+
+    const query = {
+        _id: { $nin: excludeIds }
+    };
+
+    if (search && search.trim()) {
+        const term = search.trim();
+        query.$or = [
+            { username: { $regex: term, $options: 'i' } },
+            { fullName: { $regex: term, $options: 'i' } }
+        ];
+    }
+
+    return collection()
+        .find(query)
+        .project({ username: 1, fullName: 1, avatarUrl: 1, bio: 1, address: 1, createdAt: 1 })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray();
+}
+
+// Fetches user with populated friends list.
+async function findByIdWithFriends(userId) {
+    const user = await findById(userId);
+    if (!user) return null;
+
+    let friendsList = [];
+    if (user.friends && user.friends.length > 0) {
+        friendsList = await collection()
+            .find({ _id: { $in: user.friends } })
+            .project({ username: 1, fullName: 1, avatarUrl: 1, bio: 1, address: 1 })
+            .sort({ fullName: 1 })
+            .toArray();
+    }
+
+    return { ...user, friendsList };
 }
 
 module.exports = {
@@ -115,5 +233,11 @@ module.exports = {
     findByUsername,
     findAll,
     update,
-    remove
+    remove,
+    addFriend,
+    removeFriend,
+    isFriend,
+    getFriends,
+    findDiscoverable,
+    findByIdWithFriends
 };

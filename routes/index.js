@@ -19,4 +19,7 @@ router.get('/profile/edit', isAuth, userController.showEdit);
 router.post('/profile/edit', isAuth, userController.update);
 router.post('/profile/delete', isAuth, userController.remove);
 
+// View another user's public profile and friend status
+router.get('/users/:id', isAuth, userController.showUser);
+
 module.exports = router;

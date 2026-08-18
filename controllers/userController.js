@@ -1,4 +1,44 @@
+const { ObjectId } = require('mongodb');
 const User = require('../models/User');
+const Post = require('../models/Post');
+
+// GET /users/:id — view any user's profile
+const showUser = async (req, res, next) => {
+    try {
+        const targetId = req.params.id;
+        if (!ObjectId.isValid(targetId)) {
+            const err = new Error('User not found');
+            err.status = 404;
+            return next(err);
+        }
+
+        // If viewing own profile, redirect to /profile
+        if (String(req.session.user._id) === String(targetId)) {
+            return res.redirect('/profile');
+        }
+
+        const user = await User.findByIdWithFriends(targetId);
+        if (!user) {
+            const err = new Error('User not found');
+            err.status = 404;
+            return next(err);
+        }
+
+        const [isFriend, posts] = await Promise.all([
+            User.isFriend(req.session.user._id, user._id),
+            Post.findByAuthorWithAuthor(user._id)
+        ]);
+
+        res.render('pages/user-show', {
+            title: `${user.fullName} (@${user.username}) — SocialNet`,
+            user,
+            isFriend,
+            posts
+        });
+    } catch (err) {
+        next(err);
+    }
+};
 
 // GET /profile/edit
 const showEdit = async (req, res, next) => {
@@ -67,4 +107,4 @@ const remove = async (req, res, next) => {
     }
 };
 
-module.exports = { showEdit, update, remove };
+module.exports = { showUser, showEdit, update, remove };
