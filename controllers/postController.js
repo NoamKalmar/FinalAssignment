@@ -205,7 +205,13 @@ const remove = async (req, res, next) => {
     try {
         await dropMedia(req.doc.mediaUrl);   // don't leave the bytes behind
         await Post.remove(req.params.id);
-        res.redirect('/posts/mine');
+
+        const referrer = req.get('Referrer');
+        if (referrer && referrer.includes(req.headers.host) && !referrer.includes('/posts/' + req.params.id)) {
+            return res.redirect(referrer);
+        }
+
+        res.redirect('/feed');
     } catch (err) {
         next(err);
     }
