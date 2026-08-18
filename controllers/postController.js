@@ -79,12 +79,14 @@ function isBadId(err) {
 const showNew = async (req, res, next) => {
     try {
         const myGroups = await Group.findByMember(req.session.user._id);
+        const postType = Post.TYPES.includes(req.query.type) ? req.query.type : 'text';
         res.render('pages/post-form', {
             title: 'New post — SocialNet',
             mode: 'new',
             myGroups,
             // ?group=<id> arrives from the "Post here" button on a group page
-            post: { type: 'text', content: '', mediaUrl: '', tags: [], group: req.query.group || '' }
+            // ?type=<type> arrives from composer shortcuts on the feed
+            post: { type: postType, content: '', mediaUrl: '', tags: [], group: req.query.group || '' }
         });
     } catch (err) { next(err); }
 };
