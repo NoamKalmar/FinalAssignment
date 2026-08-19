@@ -89,9 +89,13 @@ const friendCount = (user.friendsList && user.friendsList.length) || (user.frien
             <div id="user-post-types-chart" class="chart-body"></div>
         </section>
 
+        <script id="user-stats-data" type="application/json">
+            <%- JSON.stringify(userStats || {}) %>
+        </script>
+
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                const userStats = <%- JSON.stringify(userStats) %>;
+                const userStats = JSON.parse(document.getElementById('user-stats-data').textContent || '{}');
                 const postTypeColors = {
                     text: '#6c8cff',
                     image: '#ff5b7f',

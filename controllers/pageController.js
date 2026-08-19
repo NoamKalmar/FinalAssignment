@@ -32,44 +32,49 @@ const feed = async (req, res, next) => {
     }
 };
 
-// GET /stats — platform-wide analytics & D3 graphs
+// GET /stats — Personalized user activity, engagement & D3 graphs
 const stats = async (req, res, next) => {
     try {
+        const userId = req.session.user._id;
         const [
-            userCount,
-            groupCount,
-            postCount,
-            placeCount,
-            totalLikes,
-            postTypes,
-            categoryStats,
-            activityTimeline
+            user,
+            joinedGroups,
+            userStats,
+            userCategoryStats,
+            userActivityTimeline
         ] = await Promise.all([
-            User.countAll(),
-            Group.countAll(),
-            Post.countAll(),
-            Place.countAll(),
-            Post.getTotalLikesCount(),
-            Post.getPostTypeStats(),
-            Group.getCategoryStats(),
-            Post.getPostActivityTimeline()
+            User.findById(userId),
+            Group.findByMember(userId),
+            Post.getUserStats(userId),
+            Group.getUserGroupCategoryStats(userId),
+            Post.getUserPostActivityTimeline(userId)
         ]);
 
+        if (!user) {
+            return req.session.destroy(() => res.redirect('/'));
+        }
+
+        const friendCount = (user.friends && user.friends.length) || 0;
+        const groupCount = (joinedGroups && joinedGroups.length) || 0;
+
         const statsData = {
-            counts: {
-                users: userCount,
-                groups: groupCount,
-                posts: postCount,
-                places: placeCount,
-                likes: totalLikes
+            user: {
+                username: user.username,
+                fullName: user.fullName
             },
-            postTypes,
-            categoryStats,
-            activityTimeline
+            counts: {
+                posts: userStats.totalPosts || 0,
+                friends: friendCount,
+                groups: groupCount,
+                likes: userStats.totalLikes || 0
+            },
+            postTypes: userStats.types || [],
+            categoryStats: userCategoryStats || [],
+            activityTimeline: userActivityTimeline || []
         };
 
         res.render('pages/stats', {
-            title: 'Platform Statistics & Analytics — SocialNet',
+            title: 'My Activity & Statistics — SocialNet',
             statsData
         });
     } catch (err) {
@@ -77,40 +82,45 @@ const stats = async (req, res, next) => {
     }
 };
 
-// GET /api/stats — JSON endpoint for stats
+// GET /api/stats — JSON endpoint for user personalized stats
 const statsApi = async (req, res, next) => {
     try {
+        const userId = req.session.user._id;
         const [
-            userCount,
-            groupCount,
-            postCount,
-            placeCount,
-            totalLikes,
-            postTypes,
-            categoryStats,
-            activityTimeline
+            user,
+            joinedGroups,
+            userStats,
+            userCategoryStats,
+            userActivityTimeline
         ] = await Promise.all([
-            User.countAll(),
-            Group.countAll(),
-            Post.countAll(),
-            Place.countAll(),
-            Post.getTotalLikesCount(),
-            Post.getPostTypeStats(),
-            Group.getCategoryStats(),
-            Post.getPostActivityTimeline()
+            User.findById(userId),
+            Group.findByMember(userId),
+            Post.getUserStats(userId),
+            Group.getUserGroupCategoryStats(userId),
+            Post.getUserPostActivityTimeline(userId)
         ]);
 
+        if (!user) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const friendCount = (user.friends && user.friends.length) || 0;
+        const groupCount = (joinedGroups && joinedGroups.length) || 0;
+
         res.json({
-            counts: {
-                users: userCount,
-                groups: groupCount,
-                posts: postCount,
-                places: placeCount,
-                likes: totalLikes
+            user: {
+                username: user.username,
+                fullName: user.fullName
             },
-            postTypes,
-            categoryStats,
-            activityTimeline
+            counts: {
+                posts: userStats.totalPosts || 0,
+                friends: friendCount,
+                groups: groupCount,
+                likes: userStats.totalLikes || 0
+            },
+            postTypes: userStats.types || [],
+            categoryStats: userCategoryStats || [],
+            activityTimeline: userActivityTimeline || []
         });
     } catch (err) {
         next(err);

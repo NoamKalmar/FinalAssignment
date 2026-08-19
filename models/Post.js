@@ -329,6 +329,20 @@ async function findFeedPosts({ userId, friendIds = [], groupIds = [] }) {
         .toArray();
 }
 
+async function getUserPostActivityTimeline(userId) {
+    return collection().aggregate([
+        { $match: { author: new ObjectId(userId) } },
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 }
+            }
+        },
+        { $sort: { _id: 1 } },
+        { $project: { date: '$_id', count: 1, _id: 0 } }
+    ]).toArray();
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -351,6 +365,7 @@ module.exports = {
     getGroupPostTypeStats,
     getGroupTopContributors,
     getPostActivityTimeline,
+    getUserPostActivityTimeline,
     getUserStats,
     getTotalLikesCount
 };

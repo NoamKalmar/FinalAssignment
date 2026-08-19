@@ -209,6 +209,28 @@ async function getCategoryStats() {
     ]).toArray();
 }
 
+async function getUserGroupCategoryStats(userId) {
+    return collection().aggregate([
+        { $match: { 'members.user': new ObjectId(userId) } },
+        {
+            $group: {
+                _id: { $ifNull: ['$category', 'general'] },
+                groupCount: { $sum: 1 },
+                totalMembers: { $sum: { $size: { $ifNull: ['$members', []] } } }
+            }
+        },
+        { $sort: { groupCount: -1 } },
+        {
+            $project: {
+                category: '$_id',
+                groupCount: 1,
+                totalMembers: 1,
+                _id: 0
+            }
+        }
+    ]).toArray();
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -228,5 +250,6 @@ module.exports = {
     removeMember,
     isAdmin,
     countAll,
-    getCategoryStats
+    getCategoryStats,
+    getUserGroupCategoryStats
 };

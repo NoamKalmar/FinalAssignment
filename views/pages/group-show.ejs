@@ -134,10 +134,13 @@
 
 </main>
 
+<script id="group-stats-data" type="application/json">
+    <%- JSON.stringify({ groupPostStats: groupPostStats || [], topContributors: topContributors || [] }) %>
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const groupPostStats = <%- JSON.stringify(groupPostStats || []) %>;
-        const topContributors = <%- JSON.stringify(topContributors || []) %>;
+        const { groupPostStats, topContributors } = JSON.parse(document.getElementById('group-stats-data').textContent || '{}');
 
         // 1. Render Group Post Types Donut Chart
         const postTypeColors = {
