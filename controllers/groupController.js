@@ -70,19 +70,26 @@ const create = async (req, res, next) => {
     }
 };
 
-// GET /groups/:id — the group page: details, members and its posts
+// GET /groups/:id — the group page: details, members, statistics and its posts
 const show = async (req, res, next) => {
     try {
-        const group = await Group.findByIdWithMembers(req.params.id);
+        const [group, posts, groupPostStats, topContributors] = await Promise.all([
+            Group.findByIdWithMembers(req.params.id),
+            Post.findByGroupWithAuthor(req.params.id),
+            Post.getGroupPostTypeStats(req.params.id),
+            Post.getGroupTopContributors(req.params.id, 5)
+        ]);
+
         if (!group) return next(notFound());
 
         const membership = Group.membershipOf(group, req.session.user._id);
-        const posts = await Post.findByGroupWithAuthor(req.params.id);
 
         res.render('pages/group-show', {
             title: group.name + ' — SocialNet',
             group,
             posts,
+            groupPostStats,
+            topContributors,
             isMember: Boolean(membership),
             isAdmin: Boolean(membership && membership.role === 'admin')
         });

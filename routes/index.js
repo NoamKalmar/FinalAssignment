@@ -11,6 +11,8 @@ router.get('/', isGuest, authController.showLanding);
 
 // Everything below requires a session (§25).
 router.get('/feed', isAuth, pageController.feed);
+router.get('/stats', isAuth, pageController.stats);
+router.get('/api/stats', isAuth, pageController.statsApi);
 
 // Full CRUD on User (§22): Create is /register, Read is /profile,
 // Update and Delete are below.

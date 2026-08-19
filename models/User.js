@@ -106,6 +106,10 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
+async function countAll() {
+    return collection().countDocuments();
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -115,5 +119,6 @@ module.exports = {
     findByUsername,
     findAll,
     update,
-    remove
+    remove,
+    countAll
 };

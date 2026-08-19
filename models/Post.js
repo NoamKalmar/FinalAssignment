@@ -213,6 +213,95 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
+async function countAll() {
+    return collection().countDocuments();
+}
+
+async function getPostTypeStats() {
+    const results = await collection().aggregate([
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = { text: 0, image: 0, video: 0 };
+    results.forEach(r => { if (r._id) counts[r._id] = r.count; });
+    return Object.keys(counts).map(type => ({ type, count: counts[type] }));
+}
+
+async function getGroupPostTypeStats(groupId) {
+    const results = await collection().aggregate([
+        { $match: { group: new ObjectId(groupId) } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = { text: 0, image: 0, video: 0 };
+    results.forEach(r => { if (r._id) counts[r._id] = r.count; });
+    return Object.keys(counts).map(type => ({ type, count: counts[type] }));
+}
+
+async function getGroupTopContributors(groupId, limit = 5) {
+    return collection().aggregate([
+        { $match: { group: new ObjectId(groupId) } },
+        { $group: { _id: '$author', postCount: { $sum: 1 } } },
+        { $sort: { postCount: -1 } },
+        { $limit: limit },
+        {
+            $lookup: {
+                from: 'users',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'userDoc'
+            }
+        },
+        { $unwind: '$userDoc' },
+        {
+            $project: {
+                userId: '$_id',
+                username: '$userDoc.username',
+                fullName: '$userDoc.fullName',
+                postCount: 1
+            }
+        }
+    ]).toArray();
+}
+
+async function getPostActivityTimeline() {
+    return collection().aggregate([
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 }
+            }
+        },
+        { $sort: { _id: 1 } },
+        { $project: { date: '$_id', count: 1, _id: 0 } }
+    ]).toArray();
+}
+
+async function getUserStats(userId) {
+    const typeResults = await collection().aggregate([
+        { $match: { author: new ObjectId(userId) } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = { text: 0, image: 0, video: 0 };
+    typeResults.forEach(r => { if (r._id) counts[r._id] = r.count; });
+
+    const likesResult = await collection().aggregate([
+        { $match: { author: new ObjectId(userId) } },
+        { $group: { _id: null, totalLikes: { $sum: { $size: { $ifNull: ['$likes', []] } } }, totalPosts: { $sum: 1 } } }
+    ]).toArray();
+
+    return {
+        types: Object.keys(counts).map(type => ({ type, count: counts[type] })),
+        totalPosts: likesResult[0] ? likesResult[0].totalPosts : 0,
+        totalLikes: likesResult[0] ? likesResult[0].totalLikes : 0
+    };
+}
+
+async function getTotalLikesCount() {
+    const res = await collection().aggregate([
+        { $group: { _id: null, totalLikes: { $sum: { $size: { $ifNull: ['$likes', []] } } } } }
+    ]).toArray();
+    return res[0] ? res[0].totalLikes : 0;
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -228,5 +317,12 @@ module.exports = {
     findByGroupWithAuthor,
     detachFromGroup,
     update,
-    remove
+    remove,
+    countAll,
+    getPostTypeStats,
+    getGroupPostTypeStats,
+    getGroupTopContributors,
+    getPostActivityTimeline,
+    getUserStats,
+    getTotalLikesCount
 };

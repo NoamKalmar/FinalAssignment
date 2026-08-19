@@ -99,6 +99,73 @@
 
     </div>
 
+    <!-- Group Analytics & Statistics Section (D3.js) -->
+    <section class="group-stats-section" style="margin-top:36px;padding-top:24px;border-top:1px solid var(--divider)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div>
+                <h2 style="font-size:1.15rem;margin:0 0 4px">Group Analytics & Insights</h2>
+                <p style="color:var(--muted);font-size:0.85rem;margin:0">Live statistical breakdown of content and member contributions.</p>
+            </div>
+            <span class="chart-badge">D3.js Powered</span>
+        </div>
+
+        <div class="group-stats-grid">
+            <div class="stats-chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-wrap">
+                        <h3 style="font-size:0.92rem">Group Content Types</h3>
+                        <p class="chart-subtitle">Posts by media type in this group</p>
+                    </div>
+                </div>
+                <div id="group-post-types-chart" class="chart-body"></div>
+            </div>
+
+            <div class="stats-chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-wrap">
+                        <h3 style="font-size:0.92rem">Top Active Contributors</h3>
+                        <p class="chart-subtitle">Members with highest post count in group</p>
+                    </div>
+                </div>
+                <div id="group-contributors-chart" class="chart-body"></div>
+            </div>
+        </div>
+    </section>
+
 </main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const groupPostStats = <%- JSON.stringify(groupPostStats || []) %>;
+        const topContributors = <%- JSON.stringify(topContributors || []) %>;
+
+        // 1. Render Group Post Types Donut Chart
+        const postTypeColors = {
+            text: '#6c8cff',
+            image: '#ff5b7f',
+            video: '#22c55e'
+        };
+
+        const formattedStats = (groupPostStats || []).map(item => ({
+            label: item.type,
+            value: item.count,
+            color: postTypeColors[item.type] || '#ff9a5b'
+        }));
+
+        SocialNetCharts.renderDonutChart('#group-post-types-chart', formattedStats, {
+            centerLabel: 'Posts',
+            innerRadius: 50,
+            width: 320,
+            height: 220,
+            showLegend: true
+        });
+
+        // 2. Render Top Contributors Horizontal Bar Chart
+        SocialNetCharts.renderHorizontalBarChart('#group-contributors-chart', topContributors || [], {
+            color: '#6c8cff',
+            width: 380
+        });
+    });
+</script>
 
 <%- include('../partials/footer') %>

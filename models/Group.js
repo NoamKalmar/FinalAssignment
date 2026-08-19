@@ -184,6 +184,31 @@ async function isAdmin(groupId, userId) {
     return found !== null;
 }
 
+async function countAll() {
+    return collection().countDocuments();
+}
+
+async function getCategoryStats() {
+    return collection().aggregate([
+        {
+            $group: {
+                _id: { $ifNull: ['$category', 'general'] },
+                groupCount: { $sum: 1 },
+                totalMembers: { $sum: { $size: { $ifNull: ['$members', []] } } }
+            }
+        },
+        { $sort: { groupCount: -1 } },
+        {
+            $project: {
+                category: '$_id',
+                groupCount: 1,
+                totalMembers: 1,
+                _id: 0
+            }
+        }
+    ]).toArray();
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -201,5 +226,7 @@ module.exports = {
     remove,
     addMember,
     removeMember,
-    isAdmin
+    isAdmin,
+    countAll,
+    getCategoryStats
 };
