@@ -50,9 +50,12 @@
         if (total === 0) {
             container.append('div')
                 .attr('class', 'chart-empty-state')
-                .html('<p style="color:var(--muted);text-align:center;padding:40px 0;font-size:0.9rem">No data recorded yet.</p>');
+                .html('<p style="color:var(--muted);text-align:center;padding:40px 0;font-size:0.9rem">No posts yet to display.</p>');
             return;
         }
+
+        // Only draw slices for items with value > 0 so zero-count slices do not leave empty gaps
+        const activeData = data.filter(d => (d.count || d.value || 0) > 0);
 
         const colorScale = options.colors
             ? d3.scaleOrdinal().range(options.colors)
@@ -66,23 +69,26 @@
             .append('g')
             .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
+        // If only 1 slice exists, padAngle must be 0 so it forms a complete 360-degree circle
+        const padAngle = activeData.length > 1 ? (options.padAngle !== undefined ? options.padAngle : 0.02) : 0;
+
         const pie = d3.pie()
             .value(d => d.count || d.value || 0)
             .sort(null)
-            .padAngle(0.03);
+            .padAngle(padAngle);
 
         const arc = d3.arc()
             .innerRadius(innerRadius)
             .outerRadius(radius)
-            .cornerRadius(4);
+            .cornerRadius(activeData.length > 1 ? 3 : 0);
 
         const arcHover = d3.arc()
             .innerRadius(innerRadius)
-            .outerRadius(radius + 8)
-            .cornerRadius(4);
+            .outerRadius(radius + 7)
+            .cornerRadius(activeData.length > 1 ? 3 : 0);
 
         const arcs = svg.selectAll('.arc')
-            .data(pie(data))
+            .data(pie(activeData))
             .enter()
             .append('g')
             .attr('class', 'arc');
@@ -102,7 +108,7 @@
 
                 const name = d.data.label || d.data.type || 'Item';
                 const count = d.data.count || d.data.value || 0;
-                const pct = ((count / total) * 100).toFixed(1);
+                const pct = total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
 
                 tip.style('visibility', 'visible')
                     .html(`
@@ -124,7 +130,7 @@
             .transition()
             .duration(800)
             .attrTween('d', function (d) {
-                const interpolate = d3.interpolate({ startAngle: 0, endAngle: 0 }, d);
+                const interpolate = d3.interpolate({ startAngle: d.startAngle, endAngle: d.startAngle }, d);
                 return function (t) {
                     return arc(interpolate(t));
                 };
