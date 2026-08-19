@@ -1,0 +1,148 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container">
+
+    <div class="list-head">
+        <div>
+            <h1 style="margin:0 0 4px">Friends</h1>
+            <p class="count">Connect and manage your network on SocialNet</p>
+        </div>
+    </div>
+
+    <% if (typeof success !== 'undefined' && success) { %>
+        <div class="alert alert-ok"><%= success %></div>
+    <% } %>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <form class="search-form" method="GET" action="/friends">
+        <input type="hidden" name="tab" value="<%= activeTab %>">
+        <input class="field" type="search" name="q" value="<%= search %>"
+               placeholder="Search by name or @username..." autocomplete="off">
+        <button class="btn btn-primary btn-inline" style="margin-top:0" type="submit">Search</button>
+        <% if (search) { %>
+            <a href="/friends?tab=<%= activeTab %>"><button class="btn btn-outline btn-inline" style="margin-top:0" type="button">Clear</button></a>
+        <% } %>
+    </form>
+
+    <div class="tabs">
+        <a href="/friends?tab=friends<%= search ? '&q=' + encodeURIComponent(search) : '' %>"
+           class="tab <%= activeTab === 'friends' ? 'active' : '' %>">
+            My Friends (<%= friends.length %>)
+        </a>
+        <a href="/friends?tab=discover<%= search ? '&q=' + encodeURIComponent(search) : '' %>"
+           class="tab <%= activeTab === 'discover' ? 'active' : '' %>">
+            Find People (<%= discoverable.length %>)
+        </a>
+    </div>
+
+    <% if (activeTab === 'friends') { %>
+        <% if (friends.length === 0) { %>
+            <div class="empty-state">
+                <% if (search) { %>
+                    <p style="margin:0 0 10px">No friends found matching "<%= search %>".</p>
+                    <a href="/friends?tab=friends"><button class="btn btn-outline btn-inline" type="button">Show all friends</button></a>
+                <% } else { %>
+                    <p style="margin:0 0 10px">You don't have any friends added yet.</p>
+                    <a href="/friends?tab=discover"><button class="btn btn-primary btn-inline" type="button">Find people to add</button></a>
+                <% } %>
+            </div>
+        <% } else { %>
+            <div class="user-grid">
+                <% friends.forEach(f => {
+                    const initials = (f.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+                %>
+                    <div class="user-card">
+                        <div class="user-card-top">
+                            <div class="avatar"><%= initials %></div>
+                            <div class="user-card-info">
+                                <h3 class="user-card-name">
+                                    <a href="/users/<%= f._id %>"><%= f.fullName %></a>
+                                </h3>
+                                <div class="user-card-handle">@<%= f.username %></div>
+                            </div>
+                        </div>
+
+                        <% if (f.bio) { %>
+                            <p class="user-card-bio"><%= f.bio %></p>
+                        <% } %>
+
+                        <% if (f.address && (f.address.city || f.address.street)) { %>
+                            <div class="user-card-meta">
+                                📍 <%= [f.address.street, f.address.city].filter(Boolean).join(', ') %>
+                            </div>
+                        <% } %>
+
+                        <div class="user-card-actions">
+                            <a href="/users/<%= f._id %>" class="btn-outline accent btn-inline" style="padding:6px 14px;font-size:.78rem;margin:0">
+                                View Profile
+                            </a>
+                            <form method="POST" action="/friends/<%= f._id %>/remove"
+                                  onsubmit="return confirm('Remove <%= f.fullName %> from your friends?')">
+                                <button type="submit" class="linklike danger" style="font-size:.82rem">
+                                    Remove
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } %>
+    <% } else { %>
+        <%# Discover tab %>
+        <% if (discoverable.length === 0) { %>
+            <div class="empty-state">
+                <% if (search) { %>
+                    <p style="margin:0 0 10px">No users found matching "<%= search %>".</p>
+                    <a href="/friends?tab=discover"><button class="btn btn-outline btn-inline" type="button">Clear search</button></a>
+                <% } else { %>
+                    <p style="margin:0">No other users to discover right now. You are already connected with everyone!</p>
+                <% } %>
+            </div>
+        <% } else { %>
+            <div class="user-grid">
+                <% discoverable.forEach(u => {
+                    const initials = (u.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+                %>
+                    <div class="user-card">
+                        <div class="user-card-top">
+                            <div class="avatar"><%= initials %></div>
+                            <div class="user-card-info">
+                                <h3 class="user-card-name">
+                                    <a href="/users/<%= u._id %>"><%= u.fullName %></a>
+                                </h3>
+                                <div class="user-card-handle">@<%= u.username %></div>
+                            </div>
+                        </div>
+
+                        <% if (u.bio) { %>
+                            <p class="user-card-bio"><%= u.bio %></p>
+                        <% } %>
+
+                        <% if (u.address && (u.address.city || u.address.street)) { %>
+                            <div class="user-card-meta">
+                                📍 <%= [u.address.street, u.address.city].filter(Boolean).join(', ') %>
+                            </div>
+                        <% } %>
+
+                        <div class="user-card-actions">
+                            <a href="/users/<%= u._id %>" class="btn-outline btn-inline" style="padding:6px 14px;font-size:.78rem;margin:0">
+                                Profile
+                            </a>
+                            <form method="POST" action="/friends/<%= u._id %>/add">
+                                <button type="submit" class="btn btn-primary btn-inline" style="padding:6px 16px;font-size:.78rem;margin:0">
+                                    + Add Friend
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                <% }) %>
+            </div>
+        <% } %>
+    <% } %>
+
+</main>
+
+<%- include('../partials/footer') %>

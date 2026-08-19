@@ -1,23 +1,68 @@
 <%- include('../partials/head') %>
 <%- include('../partials/nav') %>
 
+<%
+const initials = (user.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+const friendCount = (user.friendsList && user.friendsList.length) || (user.friends && user.friends.length) || 0;
+%>
+
 <main class="container">
 
-    <h1><%= user.fullName %></h1>
-    <p style="color:var(--muted);margin-top:-8px">@<%= user.username %></p>
+    <div class="profile-header">
+        <div class="profile-head-info">
+            <div class="avatar lg"><%= initials %></div>
+            <div>
+                <h1 style="margin:0 0 4px"><%= user.fullName %></h1>
+                <p style="color:var(--muted);margin:0">@<%= user.username %></p>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px">
+            <a href="/profile/edit"><button class="btn btn-outline btn-inline">Edit profile</button></a>
+            <a href="/friends"><button class="btn btn-primary btn-inline" style="margin-top:0">Manage friends</button></a>
+        </div>
+    </div>
 
-    <section style="margin-top:24px;padding:22px;border:1px solid var(--divider);
+    <section style="margin-top:20px;padding:22px;border:1px solid var(--divider);
                     border-radius:var(--radius);background:var(--surface)">
         <p style="margin:0 0 8px"><strong>Email:</strong> <%= user.email %></p>
+        <% if (user.address && (user.address.city || user.address.street)) { %>
+            <p style="margin:0 0 8px"><strong>Location:</strong>
+                <%= [user.address.street, user.address.city].filter(Boolean).join(', ') %>
+            </p>
+        <% } %>
         <p style="margin:0 0 8px"><strong>Bio:</strong>
-            <%= user.bio || 'Nothing here yet.' %></p>
+            <%= user.bio || 'No bio provided yet.' %></p>
         <p style="margin:0"><strong>Joined:</strong>
             <%= user.createdAt.toLocaleDateString('en-GB') %></p>
     </section>
 
-    <p style="margin-top:20px">
-        <a href="/profile/edit"><button class="btn btn-outline btn-inline">Edit profile</button></a>
-    </p>
+    <section style="margin-top:24px;padding:22px;border:1px solid var(--divider);
+                    border-radius:var(--radius);background:var(--surface)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <h2 style="margin:0;font-size:1.1rem">Friends (<%= friendCount %>)</h2>
+            <a href="/friends" style="font-size:.85rem;color:var(--accent)">View all &rarr;</a>
+        </div>
+
+        <% if (user.friendsList && user.friendsList.length > 0) { %>
+            <div class="chips">
+                <% user.friendsList.slice(0, 12).forEach(f => {
+                    const fInitials = (f.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+                %>
+                    <a href="/users/<%= f._id %>" class="chip">
+                        <span class="avatar"><%= fInitials %></span>
+                        <span><%= f.fullName %></span>
+                    </a>
+                <% }) %>
+                <% if (friendCount > 12) { %>
+                    <a href="/friends" class="chip" style="color:var(--muted)">+<%= friendCount - 12 %> more</a>
+                <% } %>
+            </div>
+        <% } else { %>
+            <p style="color:var(--muted);font-size:.88rem;margin:0">
+                You haven't added any friends yet. <a href="/friends?tab=discover" style="color:var(--accent)">Find people to connect with &rarr;</a>
+            </p>
+        <% } %>
+    </section>
 
     <!-- Personal Activity & Stats Section (D3.js) -->
     <% if (typeof userStats !== 'undefined') { %>

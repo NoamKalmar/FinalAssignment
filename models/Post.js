@@ -302,6 +302,33 @@ async function getTotalLikesCount() {
     return res[0] ? res[0].totalLikes : 0;
 }
 
+// Feed query (§27): Posts from friends, own posts, and groups the user belongs to.
+// MongoDB's $match with $or guarantees every matching post is returned exactly once.
+async function findFeedPosts({ userId, friendIds = [], groupIds = [] }) {
+    const authors = [
+        new ObjectId(userId),
+        ...friendIds.map(id => new ObjectId(id))
+    ];
+
+    const orClauses = [
+        { author: { $in: authors } }
+    ];
+
+    if (groupIds && groupIds.length > 0) {
+        orClauses.push({
+            group: { $in: groupIds.map(id => new ObjectId(id)) }
+        });
+    }
+
+    return collection()
+        .aggregate([
+            { $match: { $or: orClauses } },
+            { $sort: { createdAt: -1 } },
+            ...WITH_AUTHOR
+        ])
+        .toArray();
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -316,6 +343,7 @@ module.exports = {
     findByGroup,
     findByGroupWithAuthor,
     detachFromGroup,
+    findFeedPosts,
     update,
     remove,
     countAll,
