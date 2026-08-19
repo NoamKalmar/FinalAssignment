@@ -217,4 +217,23 @@ const remove = async (req, res, next) => {
     }
 };
 
-module.exports = { showNew, create, show, mine, showEdit, update, remove };
+// POST /posts/:id/like
+const toggleLike = async (req, res, next) => {
+    try {
+        const result = await Post.toggleLike(req.params.id, req.session.user._id);
+
+        if (req.xhr || (req.headers.accept && req.headers.accept.includes('application/json'))) {
+            return res.json({ success: true, ...result });
+        }
+
+        const referrer = req.get('Referrer');
+        if (referrer && referrer.includes(req.headers.host)) {
+            return res.redirect(referrer);
+        }
+        res.redirect('/posts/' + req.params.id);
+    } catch (err) {
+        next(isBadId(err) ? notFound() : err);
+    }
+};
+
+module.exports = { showNew, create, show, mine, showEdit, update, remove, toggleLike };

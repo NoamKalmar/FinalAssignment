@@ -594,6 +594,49 @@
             .text(d => d.postCount || d.value || 0);
     }
 
+    // Global instant Like button handler
+    document.addEventListener('submit', async function (e) {
+        const form = e.target.closest('.like-form');
+        if (!form) return;
+        e.preventDefault();
+
+        const btn = form.querySelector('.like-btn');
+        const icon = form.querySelector('.like-icon');
+        const count = form.querySelector('.like-count');
+
+        const isCurrentlyLiked = btn ? btn.classList.contains('liked') : false;
+        const currentCount = parseInt(count ? count.textContent || '0' : '0', 10);
+
+        if (btn) btn.classList.toggle('liked');
+        if (icon) icon.textContent = !isCurrentlyLiked ? '❤️' : '🤍';
+        if (count) count.textContent = Math.max(0, currentCount + (!isCurrentlyLiked ? 1 : -1));
+
+        try {
+            const res = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await res.json();
+            if (data && data.success) {
+                if (btn) {
+                    if (data.hasLiked) {
+                        btn.classList.add('liked');
+                        if (icon) icon.textContent = '❤️';
+                    } else {
+                        btn.classList.remove('liked');
+                        if (icon) icon.textContent = '🤍';
+                    }
+                }
+                if (count) count.textContent = data.likesCount;
+            }
+        } catch (err) {
+            form.submit();
+        }
+    });
+
     // Expose library methods globally
     global.SocialNetCharts = {
         renderDonutChart,

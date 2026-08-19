@@ -4,8 +4,11 @@
    Expects: post (with post.author expanded), and currentUser from res.locals. */
 const isMine = currentUser && String(post.author._id) === String(currentUser._id);
 const initials = (post.author.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+const likesList = post.likes || [];
+const likesCount = likesList.length;
+const hasLiked = currentUser && likesList.some(id => String(id) === String(currentUser._id));
 %>
-<article class="post">
+<article class="post" id="post-<%= post._id %>">
 
     <header class="post-head">
         <div class="avatar"><%= initials %></div>
@@ -37,14 +40,23 @@ const initials = (post.author.fullName || '?').split(' ').map(w => w[0]).slice(0
     <% } %>
 
     <footer class="post-actions">
-        <a href="/posts/<%= post._id %>">Open</a>
-        <% if (isMine) { %>
-            <a href="/posts/<%= post._id %>/edit">Edit</a>
-            <form method="POST" action="/posts/<%= post._id %>/delete"
-                  onsubmit="return confirm('Delete this post?')">
-                <button type="submit" class="linklike danger">Delete</button>
-            </form>
-        <% } %>
+        <form method="POST" action="/posts/<%= post._id %>/like" class="like-form">
+            <button type="submit" class="like-btn <%= hasLiked ? 'liked' : '' %>" title="<%= hasLiked ? 'Unlike' : 'Like' %>">
+                <span class="like-icon"><%= hasLiked ? '❤️' : '🤍' %></span>
+                <span class="like-count"><%= likesCount %></span>
+            </button>
+        </form>
+
+        <div class="post-actions-right">
+            <a href="/posts/<%= post._id %>">Open</a>
+            <% if (isMine) { %>
+                <a href="/posts/<%= post._id %>/edit">Edit</a>
+                <form method="POST" action="/posts/<%= post._id %>/delete"
+                      onsubmit="return confirm('Delete this post?')">
+                    <button type="submit" class="linklike danger">Delete</button>
+                </form>
+            <% } %>
+        </div>
     </footer>
 
 </article>

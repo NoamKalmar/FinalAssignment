@@ -213,6 +213,32 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
+async function toggleLike(postId, userId) {
+    const post = await collection().findOne({ _id: new ObjectId(postId) });
+    if (!post) throw new Error('Post not found');
+
+    const userObjId = new ObjectId(userId);
+    const hasLiked = (post.likes || []).some(id => String(id) === String(userId));
+
+    if (hasLiked) {
+        await collection().updateOne(
+            { _id: new ObjectId(postId) },
+            { $pull: { likes: userObjId } }
+        );
+    } else {
+        await collection().updateOne(
+            { _id: new ObjectId(postId) },
+            { $addToSet: { likes: userObjId } }
+        );
+    }
+
+    const updated = await collection().findOne({ _id: new ObjectId(postId) });
+    return {
+        hasLiked: !hasLiked,
+        likesCount: (updated.likes || []).length
+    };
+}
+
 async function countAll() {
     return collection().countDocuments();
 }
@@ -360,6 +386,7 @@ module.exports = {
     findFeedPosts,
     update,
     remove,
+    toggleLike,
     countAll,
     getPostTypeStats,
     getGroupPostTypeStats,
