@@ -4,7 +4,27 @@
    from existing sites (§16).
    =========================================================================== */
 
+/* ---------------------------------------------------------------------------
+   §32.iv — @font-face
+   Outfit, a variable font under the SIL Open Font Licence (public/fonts/OFL.txt),
+   so §15's free-tools rule is satisfied.
+   Served from our own /fonts, not a CDN: the same reasoning as D3 — no
+   internet at the defense must not mean no typography.
+   One file covers every weight from 100 to 900, which is the point of a
+   variable font: nine separate files would be nine requests.
+   font-display:swap shows system text immediately and swaps when the font
+   arrives, rather than leaving the page blank while it downloads.
+   --------------------------------------------------------------------------- */
+@font-face{
+  font-family:'Outfit';
+  src:url('/fonts/Outfit.ttf') format('truetype-variations');
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+
 :root{
+  --font-display:'Outfit', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --bg:#0c1014;
   --surface:#16191d;
   --surface-2:#1b1f24;
@@ -694,3 +714,86 @@ a{ text-decoration:none; color:inherit; }
 .wx-detail dd{ margin:0; font-size:.88rem; font-weight:600; }
 
 .wx-src{ margin:10px 0 0; font-size:.72rem; color:var(--dim); }
+
+/* ===========================================================================
+   M10 — remaining §31 and §32 requirements
+   =========================================================================== */
+
+/* ---- §32.iv: apply the loaded font to display type ----------------------- */
+/* Body stays on the system stack — it renders instantly and is what the OS
+   optimises for long text. The display font is for headings, where character
+   matters more than raw legibility. */
+h1, h2, h3,
+.wordmark, .brand, .headline,
+.error-code, .hero h1{
+  font-family:var(--font-display);
+  letter-spacing:-.02em;
+}
+
+/* ---- §32.i: text-shadow -------------------------------------------------- */
+.wordmark{
+  /* Two shadows: a tight dark one for legibility against the panel, and a
+     wide coloured glow that picks up the accent. */
+  text-shadow:0 2px 4px rgba(0,0,0,.55),
+              0 0 26px rgba(108,140,255,.35);
+}
+.headline{
+  text-shadow:0 2px 18px rgba(0,0,0,.45);
+}
+.error-code{
+  text-shadow:0 4px 30px rgba(255,91,127,.30);
+}
+.nav .brand{
+  text-shadow:0 1px 3px rgba(0,0,0,.5);
+}
+
+/* ---- §32.iii: multiple-columns ------------------------------------------- */
+/* Used on the About page, where the text is long enough for newspaper-style
+   columns to genuinely help. column-count with column-width lets the browser
+   decide how many columns actually fit, so it degrades to one on a phone
+   without a media query. */
+.prose-columns{
+  column-count:2;
+  column-width:19rem;
+  column-gap:2.4rem;
+  column-rule:1px solid var(--divider);
+  font-size:.92rem;
+  color:var(--muted);
+}
+.prose-columns p{ margin:0 0 1em; }
+/* Stops a heading being orphaned at the foot of a column. */
+.prose-columns h3{
+  break-after:avoid;
+  margin:1.4em 0 .4em;
+  font-size:.95rem;
+  color:var(--text);
+}
+.prose-columns p:first-of-type{ margin-top:0; }
+
+/* ---- static content pages ------------------------------------------------ */
+.doc-page h1{ font-size:1.6rem; margin:0 0 6px; }
+.doc-lead{ color:var(--muted); margin:0 0 26px; font-size:.95rem; }
+
+/* ---- §31.ii: canvas ------------------------------------------------------ */
+.avatar-studio{
+  display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start;
+  background:var(--surface); border:1px solid var(--divider);
+  border-radius:var(--radius); padding:18px; margin-bottom:22px;
+}
+#avatar-canvas{
+  border-radius:50%; background:var(--surface-2);
+  border:1px solid var(--divider); flex:none;
+}
+.studio-controls{ flex:1; min-width:220px; }
+.swatches{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.swatch{
+  width:30px; height:30px; border-radius:50%; cursor:pointer;
+  border:2px solid transparent; transition:transform .15s, border-color .15s;
+}
+.swatch:hover{ transform:scale(1.12); }
+.swatch.on{ border-color:var(--text); }
+
+/* An <img> avatar must match the CSS-drawn one exactly, or the two look
+   different wherever they appear side by side. */
+img.avatar{ object-fit:cover; padding:0; }
+.avatar.lg{ width:72px; height:72px; font-size:1.3rem; }
