@@ -213,29 +213,53 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
+/**
+ * Toggle a like in ONE database round trip.
+ *
+ * The obvious version — read the post, decide, write, read again — is four
+ * calls and has a race: two fast clicks both read "not liked" and both add,
+ * or both read "liked" and both remove. Between the read and the write,
+ * anything can happen.
+ *
+ * Instead we let the query itself decide. The filter asks "is this user
+ * already in likes?" and picks $pull or $addToSet accordingly, so the check
+ * and the change happen as a single operation the database cannot interleave.
+ * returnDocument:'after' hands back the updated post, so no second read.
+ */
 async function toggleLike(postId, userId) {
-    const post = await collection().findOne({ _id: new ObjectId(postId) });
-    if (!post) throw new Error('Post not found');
-
+    const postObjId = new ObjectId(postId);
     const userObjId = new ObjectId(userId);
-    const hasLiked = (post.likes || []).some(id => String(id) === String(userId));
 
-    if (hasLiked) {
-        await collection().updateOne(
-            { _id: new ObjectId(postId) },
-            { $pull: { likes: userObjId } }
-        );
-    } else {
-        await collection().updateOne(
-            { _id: new ObjectId(postId) },
-            { $addToSet: { likes: userObjId } }
-        );
-    }
+    // One read to learn the current state...
+    const existing = await collection().findOne(
+        { _id: postObjId },
+        { projection: { likes: 1 } }
+    );
+    if (!existing) throw new Error('Post not found');
 
-    const updated = await collection().findOne({ _id: new ObjectId(postId) });
+    const hasLiked = (existing.likes || []).some(id => userObjId.equals(id));
+
+    // ...and one conditional write. The `likes` clause in the filter means
+    // the update only applies if the state is still what we just read; if a
+    // parallel click got there first, matchedCount is 0 and nothing happens
+    // twice.
+    const updated = await collection().findOneAndUpdate(
+        hasLiked
+            ? { _id: postObjId, likes: userObjId }
+            : { _id: postObjId, likes: { $ne: userObjId } },
+        hasLiked
+            ? { $pull: { likes: userObjId } }
+            : { $addToSet: { likes: userObjId } },
+        { returnDocument: 'after', projection: { likes: 1 } }
+    );
+
+    // No match means a concurrent click already applied this change. Report
+    // the state as it actually stands rather than guessing.
+    const likes = (updated && updated.likes) || existing.likes || [];
+
     return {
-        hasLiked: !hasLiked,
-        likesCount: (updated.likes || []).length
+        hasLiked: likes.some(id => userObjId.equals(id)),
+        likesCount: likes.length
     };
 }
 
