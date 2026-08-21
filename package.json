@@ -8,7 +8,9 @@
   },
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "seed": "node seed/seed.js",
+    "seed:reset": "node seed/seed.js --reset"
   },
   "repository": {
     "type": "git",
