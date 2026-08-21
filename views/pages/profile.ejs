@@ -8,6 +8,8 @@ const friendCount = (user.friendsList && user.friendsList.length) || (user.frien
 
 <main class="container">
 
+    <%- include('../partials/weather-card', { w: currentWeather }) %>
+
     <div class="profile-header">
         <div class="profile-head-info">
             <div class="avatar lg"><%= initials %></div>

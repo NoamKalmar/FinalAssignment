@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Group = require('../models/Group');
 const Post = require('../models/Post');
+const weather = require('../services/weatherService');
 const Place = require('../models/Place');
 
 // GET /feed — Main activity feed (§27)
@@ -137,12 +138,23 @@ const profile = async (req, res, next) => {
             return req.session.destroy(() => res.redirect('/'));
         }
 
-        const userStats = await Post.getUserStats(req.session.user._id);
+        // Weather where this user lives (§33.ii). Runs alongside the stats
+        // query rather than after it — neither depends on the other, and the
+        // external call is the slow one.
+        const [userStats, currentWeather] = await Promise.all([
+            Post.getUserStats(req.session.user._id),
+            user.address && user.address.city
+                ? weather.byCity(user.address.city)
+                : Promise.resolve(null)
+        ]);
 
         res.render('pages/profile', {
             title: 'Profile — SocialNet',
             user,
-            userStats
+            userStats,
+            // null when the user has set no city, or the service is down.
+            // The view simply omits the card in that case (§29).
+            currentWeather
         });
     } catch (err) {
         next(err);

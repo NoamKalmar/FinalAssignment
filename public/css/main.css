@@ -670,3 +670,27 @@ a{ text-decoration:none; color:inherit; }
 }
 .sr .post-type{ margin-left:0; align-self:flex-start; }
 .sr .post-tags{ padding:8px 0 0; }
+
+/* ===========================================================================
+   Weather card (M8 — §33.ii)
+   =========================================================================== */
+
+.weather-card{
+  background:linear-gradient(135deg, rgba(28,79,156,.22), rgba(108,140,255,.10)), var(--surface);
+  border:1px solid var(--divider); border-radius:var(--radius);
+  padding:16px 18px; margin-bottom:18px;
+}
+.wx-main{ display:flex; align-items:center; gap:14px; }
+.wx-icon{ font-size:2.4rem; line-height:1; }
+.wx-temp{ font-size:1.7rem; font-weight:700; letter-spacing:-1px; }
+.wx-desc{ font-size:.85rem; color:var(--muted); }
+
+.wx-detail{
+  display:flex; gap:22px; margin:14px 0 0; padding:12px 0 0;
+  border-top:1px solid var(--divider);
+}
+.wx-detail div{ display:flex; flex-direction:column; gap:1px; }
+.wx-detail dt{ font-size:.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
+.wx-detail dd{ margin:0; font-size:.88rem; font-weight:600; }
+
+.wx-src{ margin:10px 0 0; font-size:.72rem; color:var(--dim); }
