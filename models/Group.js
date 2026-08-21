@@ -79,6 +79,64 @@ async function findAll() {
     return collection().find({}).sort({ createdAt: -1 }).toArray();
 }
 
+/**
+ * Search input is text, not a pattern. See the same helper in Post.js (§29).
+ */
+function escapeRegex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Advanced group search — §23, query 2. Four optional parameters:
+ * keyword, category, minimum members, created after.
+ *
+ * memberCount does not exist as a stored field — it is computed with $size,
+ * which is why the $match for it has to come AFTER $addFields. Filtering on
+ * a field you are about to compute would match nothing.
+ */
+async function search(params = {}) {
+    const filter = {};
+
+    // Keyword looks in both the name and the description.
+    if (params.keyword && params.keyword.trim()) {
+        const rx = { $regex: escapeRegex(params.keyword.trim()), $options: 'i' };
+        filter.$or = [{ name: rx }, { description: rx }];
+    }
+
+    if (params.category && params.category.trim()) {
+        filter.category = { $regex: '^' + escapeRegex(params.category.trim()) + '$', $options: 'i' };
+    }
+
+    if (params.from) {
+        const d = new Date(params.from);
+        if (!isNaN(d)) filter.createdAt = { $gte: d };
+    }
+
+    const pipeline = [
+        { $match: filter },
+        { $addFields: { memberCount: { $size: '$members' } } }
+    ];
+
+    const min = parseInt(params.minMembers, 10);
+    if (!isNaN(min) && min > 0) {
+        pipeline.push({ $match: { memberCount: { $gte: min } } });
+    }
+
+    pipeline.push(
+        { $project: { members: 0 } },
+        { $sort: { memberCount: -1, createdAt: -1 } },
+        { $limit: 100 }
+    );
+
+    return collection().aggregate(pipeline).toArray();
+}
+
+// Every distinct category in use, to populate the search dropdown.
+async function distinctCategories() {
+    const cats = await collection().distinct('category');
+    return cats.filter(Boolean).sort();
+}
+
 // Group list: add a member count without dragging the whole members array
 // into the view.
 async function findAllSummary() {
@@ -239,6 +297,8 @@ module.exports = {
     findById,
     findAll,
     findAllSummary,
+    search,
+    distinctCategories,
     findByIdWithMembers,
     membershipOf,
     setRole,

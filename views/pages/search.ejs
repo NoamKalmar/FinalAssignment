@@ -1,0 +1,117 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:860px">
+
+    <h1 style="font-size:1.4rem;margin:0 0 4px">Search</h1>
+    <p style="color:var(--muted);font-size:.85rem;margin:0 0 20px">
+        Results update as you type &mdash; no page reload.
+    </p>
+
+    <div class="tabs" role="tablist">
+        <button class="tab <%= tab === 'posts' ? 'on' : '' %>" data-tab="posts" role="tab">Posts</button>
+        <button class="tab <%= tab === 'groups' ? 'on' : '' %>" data-tab="groups" role="tab">Groups</button>
+    </div>
+
+    <!-- ══════════════ SEARCH 1 — POSTS, six parameters (§23) ══════════════ -->
+    <section id="panel-posts" class="search-panel" <%= tab === 'posts' ? '' : 'hidden' %>>
+        <form id="form-posts" class="search-form" onsubmit="return false">
+            <div class="search-grid">
+                <div class="sf-wide">
+                    <label class="label" for="p-keyword">Keyword</label>
+                    <input class="field" id="p-keyword" name="keyword" type="text"
+                           value="<%= query.keyword || '' %>" placeholder="Words in the post">
+                </div>
+
+                <div>
+                    <label class="label" for="p-type">Type</label>
+                    <select class="field" id="p-type" name="type">
+                        <option value="">Any</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="label" for="p-tag">Tag</label>
+                    <input class="field" id="p-tag" name="tag" type="text" placeholder="travel">
+                </div>
+
+                <div>
+                    <label class="label" for="p-group">Group</label>
+                    <select class="field" id="p-group" name="group">
+                        <option value="">Any group</option>
+                        <% myGroups.forEach(g => { %>
+                            <option value="<%= g._id %>"><%= g.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="label" for="p-from">Posted after</label>
+                    <input class="field" id="p-from" name="from" type="date">
+                </div>
+
+                <div>
+                    <label class="label" for="p-to">Posted before</label>
+                    <input class="field" id="p-to" name="to" type="date">
+                </div>
+            </div>
+
+            <div class="search-actions">
+                <span class="param-note">6 parameters</span>
+                <button class="btn btn-outline btn-inline" type="button" data-reset="posts">Clear</button>
+            </div>
+        </form>
+
+        <p id="status-posts" class="search-status" aria-live="polite"></p>
+        <div id="results-posts"></div>
+    </section>
+
+    <!-- ══════════════ SEARCH 2 — GROUPS, four parameters (§23) ═══════════ -->
+    <section id="panel-groups" class="search-panel" <%= tab === 'groups' ? '' : 'hidden' %>>
+        <form id="form-groups" class="search-form" onsubmit="return false">
+            <div class="search-grid">
+                <div class="sf-wide">
+                    <label class="label" for="g-keyword">Keyword</label>
+                    <input class="field" id="g-keyword" name="keyword" type="text"
+                           placeholder="Name or description">
+                </div>
+
+                <div>
+                    <label class="label" for="g-category">Category</label>
+                    <select class="field" id="g-category" name="category">
+                        <option value="">Any</option>
+                        <% categories.forEach(c => { %>
+                            <option value="<%= c %>"><%= c %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="label" for="g-min">Minimum members</label>
+                    <input class="field" id="g-min" name="minMembers" type="number" min="1" placeholder="e.g. 3">
+                </div>
+
+                <div>
+                    <label class="label" for="g-from">Created after</label>
+                    <input class="field" id="g-from" name="from" type="date">
+                </div>
+            </div>
+
+            <div class="search-actions">
+                <span class="param-note">4 parameters</span>
+                <button class="btn btn-outline btn-inline" type="button" data-reset="groups">Clear</button>
+            </div>
+        </form>
+
+        <p id="status-groups" class="search-status" aria-live="polite"></p>
+        <div id="results-groups"></div>
+    </section>
+
+</main>
+
+<script src="/js/search.js"></script>
+
+<%- include('../partials/footer') %>
