@@ -797,3 +797,67 @@ h1, h2, h3,
    different wherever they appear side by side. */
 img.avatar{ object-fit:cover; padding:0; }
 .avatar.lg{ width:72px; height:72px; font-size:1.3rem; }
+
+/* ===========================================================================
+   Places & map (M7 — §33.iii)
+   =========================================================================== */
+
+.map-toolbar{
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:14px 0 12px;
+}
+.map-toolbar .field{ flex:1; min-width:200px; margin-bottom:0; }
+.map-toolbar .btn{ margin-top:0; }
+.map-hint{ font-size:.78rem; color:var(--dim); }
+
+.map-canvas{
+  width:100%; height:440px;
+  border:1px solid var(--divider); border-radius:var(--radius);
+  background:var(--surface-2);
+}
+
+/* Google's info window is light by default; these tame it to match. */
+.gm-style .gm-style-iw-c{
+  background:var(--surface) !important;
+  border-radius:12px !important;
+  box-shadow:0 6px 24px rgba(0,0,0,.5) !important;
+  padding:12px !important;
+}
+.gm-style .gm-style-iw-d{ overflow:hidden !important; }
+.gm-style .gm-style-iw-tc::after{ background:var(--surface) !important; }
+.iw{ color:var(--text); font-size:.85rem; min-width:170px; }
+.iw-meta{ color:var(--muted); font-size:.75rem; margin-top:2px; }
+.iw-wx{ margin-top:8px; padding-top:8px; border-top:1px solid var(--divider); font-size:.8rem; }
+
+/* ---- the add / edit form ---- */
+
+.place-form{
+  background:var(--surface); border:1px solid var(--divider);
+  border-radius:var(--radius); padding:18px; margin-top:14px;
+}
+.place-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:0 14px; }
+.pl-wide{ grid-column:1 / -1; }
+.place-form .field{ margin-bottom:12px; }
+.place-form .field[readonly]{ color:var(--muted); cursor:not-allowed; }
+.place-actions{ display:flex; gap:10px; }
+.place-actions .btn{ margin-top:0; }
+
+/* ---- the list ---- */
+
+.place-list{ display:flex; flex-direction:column; gap:8px; }
+.place-row{
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface); border:1px solid var(--divider);
+  border-radius:var(--radius); padding:12px 15px; cursor:pointer;
+  transition:border-color .18s;
+}
+.place-row:hover{ border-color:#3a3f45; }
+.place-body{ flex:1; min-width:0; }
+.place-body strong{ font-size:.9rem; }
+.place-meta{ display:block; font-size:.75rem; color:var(--muted); }
+.place-coords{
+  font-family:ui-monospace, Consolas, monospace;
+  font-size:.72rem; color:var(--dim); white-space:nowrap;
+}
+.place-tools{ display:flex; gap:10px; align-items:center; }
+.place-tools form{ margin:0; }
+.place-tools .linklike{ font-size:.75rem; }
