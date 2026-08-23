@@ -122,11 +122,33 @@
 </script>
 
 <% if (mapsKey) { %>
+    <script>
+        /* Google calls this when it rejects the API key. Without it the user
+           gets Google's generic grey "Oops! Something went wrong" panel with
+           no indication of what to fix. */
+        window.gm_authFailure = function () {
+            var el = document.getElementById('map');
+            if (!el) return;
+            el.innerHTML =
+                '<div class="map-error">' +
+                  '<strong>Google rejected the API key.</strong>' +
+                  '<p>Usually one of:</p>' +
+                  '<ul>' +
+                    '<li>the key\'s website restriction does not list ' +
+                      '<code>' + window.location.origin + '/*</code></li>' +
+                    '<li>Maps JavaScript API is not enabled on the project</li>' +
+                    '<li>billing is not linked to that project</li>' +
+                    '<li>the restriction was saved less than five minutes ago</li>' +
+                  '</ul>' +
+                  '<p>Open DevTools &rarr; Console for Google\'s exact error name.</p>' +
+                '</div>';
+        };
+    </script>
     <script src="/js/places-map.js"></script>
-    <%# callback=initPlacesMap defers until the API is ready; async keeps it
-        off the critical path. %>
+    <%# loading=async is Google's recommended pattern; without it the API logs
+        a performance warning. callback= defers init until the API is ready. %>
     <script async
-            src="https://maps.googleapis.com/maps/api/js?key=<%= mapsKey %>&callback=initPlacesMap"></script>
+            src="https://maps.googleapis.com/maps/api/js?key=<%= mapsKey %>&loading=async&callback=initPlacesMap"></script>
 <% } %>
 
 <%- include('../partials/footer') %>

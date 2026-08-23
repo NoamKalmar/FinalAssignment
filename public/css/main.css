@@ -861,3 +861,13 @@ img.avatar{ object-fit:cover; padding:0; }
 .place-tools{ display:flex; gap:10px; align-items:center; }
 .place-tools form{ margin:0; }
 .place-tools .linklike{ font-size:.75rem; }
+
+.map-error{
+  padding:26px; color:var(--muted); font-size:.86rem;
+  display:flex; flex-direction:column; justify-content:center; height:100%;
+}
+.map-error strong{ color:var(--danger); font-size:.95rem; }
+.map-error p{ margin:8px 0 4px; }
+.map-error ul{ margin:0; padding-left:20px; }
+.map-error li{ margin-bottom:3px; }
+.map-error code{ color:var(--accent); }
