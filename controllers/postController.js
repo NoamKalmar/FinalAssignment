@@ -253,6 +253,7 @@ const shareToFacebook = async (req, res, next) => {
         if (!facebook.isConfigured()) {
             const err = new Error('Facebook is not configured on this server.');
             err.status = 503;
+            err.userMessage = 'Facebook sharing is not configured on this server.';
             return next(err);
         }
 
@@ -278,6 +279,9 @@ const shareToFacebook = async (req, res, next) => {
         // Surface Facebook's own message so the cause is visible (§29).
         const e = new Error('Facebook rejected the post: ' + err.message);
         e.status = 502;
+        // Marked user-facing: this is Facebook's own wording, not our internals,
+        // so the error page may show it rather than a generic 5xx line.
+        e.userMessage = 'Facebook rejected the post: ' + err.message;
         next(e);
     }
 };
