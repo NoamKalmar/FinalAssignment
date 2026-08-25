@@ -871,3 +871,25 @@ img.avatar{ object-fit:cover; padding:0; }
 .map-error ul{ margin:0; padding-left:20px; }
 .map-error li{ margin-bottom:3px; }
 .map-error code{ color:var(--accent); }
+
+/* ===========================================================================
+   Facebook integration (M9 — §33.iv)
+   =========================================================================== */
+
+.fb-panel{
+  background:var(--surface); border:1px solid var(--divider);
+  border-radius:var(--radius); padding:16px 18px; margin-top:16px;
+}
+.fb-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+.fb-head h2{ margin:0; font-size:1rem; }
+.fb-note{ color:var(--muted); font-size:.83rem; margin:0 0 12px; }
+.fb-panel form{ margin:0; }
+.fb-panel .btn{ margin-top:0; }
+
+.fb-engagement{
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  font-size:.85rem; color:var(--muted); margin-bottom:12px;
+}
+.fb-stat strong{ color:var(--text); font-size:1.05rem; margin-right:4px; }
+.fb-link{ color:var(--accent); }
+.fb-link:hover{ text-decoration:underline; }

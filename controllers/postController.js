@@ -1,6 +1,7 @@
 const Post = require('../models/Post');
 const Media = require('../models/Media');
 const Group = require('../models/Group');
+const facebook = require('../services/facebookService');
 
 /**
  * Media reaches a post two ways:
@@ -236,4 +237,86 @@ const toggleLike = async (req, res, next) => {
     }
 };
 
-module.exports = { showNew, create, show, mine, showEdit, update, remove, toggleLike };
+// ---------------------------------------------------------------------------
+// Facebook Graph API — §33.iv
+//
+// The requirement rules out iframes and share widgets: this has to send data
+// to Facebook and read data back, from our own server. isOwner has already
+// confirmed the caller wrote the post, so only an author can publish their
+// own content.
+// ---------------------------------------------------------------------------
+
+// POST /posts/:id/share
+const shareToFacebook = async (req, res, next) => {
+    const post = req.doc;
+    try {
+        if (!facebook.isConfigured()) {
+            const err = new Error('Facebook is not configured on this server.');
+            err.status = 503;
+            return next(err);
+        }
+
+        if (post.facebookPostId) {
+            const err = new Error('This post has already been shared to Facebook.');
+            err.status = 400;
+            return next(err);
+        }
+
+        // The author's name makes otherwise-identical messages distinct —
+        // Facebook rejects a repeated message as a duplicate.
+        const author = req.session.user.fullName;
+        const message = post.content
+            + '\n\n— ' + author + ' on SocialNet'
+            + (post.mediaUrl && !post.mediaUrl.startsWith('/media/') ? '\n' + post.mediaUrl : '');
+
+        const facebookPostId = await facebook.publish(message);
+        await Post.setFacebookShare(req.params.id, facebookPostId);
+
+        res.redirect('/posts/' + req.params.id);
+    } catch (err) {
+        // A third-party outage is not our bug, and must not read like one.
+        // Surface Facebook's own message so the cause is visible (§29).
+        const e = new Error('Facebook rejected the post: ' + err.message);
+        e.status = 502;
+        next(e);
+    }
+};
+
+// POST /posts/:id/unshare — remove the Page post again
+const unshareFromFacebook = async (req, res, next) => {
+    const post = req.doc;
+    try {
+        if (!post.facebookPostId) return res.redirect('/posts/' + req.params.id);
+
+        await facebook.unpublish(post.facebookPostId);
+        await Post.setFacebookShare(req.params.id, null);
+
+        res.redirect('/posts/' + req.params.id);
+    } catch (err) {
+        // If Facebook no longer has it — deleted by hand, token changed — the
+        // local flag is stale either way, so clear it rather than leaving the
+        // user stuck with a button that always fails.
+        await Post.setFacebookShare(req.params.id, null);
+        res.redirect('/posts/' + req.params.id);
+    }
+};
+
+// GET /posts/:id/engagement — the RECEIVE half of §33.iv, called by fetch()
+const facebookEngagement = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post || !post.facebookPostId) return res.json({ ok: false });
+
+        const data = await facebook.getEngagement(post.facebookPostId);
+        res.json(data ? { ok: true, ...data } : { ok: false });
+    } catch (err) {
+        // Engagement is supplementary. If Facebook is unreachable the post
+        // page still renders; the panel just says so.
+        res.json({ ok: false, reason: err.message });
+    }
+};
+
+module.exports = {
+    showNew, create, show, mine, showEdit, update, remove, toggleLike,
+    shareToFacebook, unshareFromFacebook, facebookEngagement
+};

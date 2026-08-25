@@ -38,6 +38,13 @@ router.post('/:id/edit',
 
 router.post('/:id/like', postController.toggleLike);
 
+// §33.iv — Facebook. Only the author may publish their own post.
+router.post('/:id/share', isOwner(Post, 'author'), postController.shareToFacebook);
+router.post('/:id/unshare', isOwner(Post, 'author'), postController.unshareFromFacebook);
+
+// The read-back half, fetched by the browser once the page has rendered.
+router.get('/:id/engagement', postController.facebookEngagement);
+
 router.post('/:id/delete', isOwner(Post, 'author'), postController.remove);
 
 module.exports = router;

@@ -50,6 +50,10 @@ const SCHEMA = {
             place:          { bsonType: ['objectId', 'null'] },
             likes:          { bsonType: 'array' },
             sharedToSocial: { bsonType: 'bool' },
+            // The id Facebook returns on publish, "{page-id}_{post-id}".
+            // Kept so we can read engagement back and delete the Page post
+            // again (§33.iv).
+            facebookPostId: { bsonType: ['string', 'null'] },
             createdAt:      { bsonType: 'date' }
         }
     }
@@ -290,6 +294,20 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
+// Record that a post reached Facebook, and the id it got there (§33.iv).
+async function setFacebookShare(id, facebookPostId) {
+    await collection().updateOne(
+        { _id: new ObjectId(id) },
+        {
+            $set: {
+                facebookPostId: facebookPostId,
+                sharedToSocial: Boolean(facebookPostId)
+            }
+        }
+    );
+    return findById(id);
+}
+
 /**
  * Toggle a like in ONE database round trip.
  *
@@ -488,6 +506,7 @@ module.exports = {
     findFeedPosts,
     update,
     remove,
+    setFacebookShare,
     toggleLike,
     countAll,
     getPostTypeStats,
