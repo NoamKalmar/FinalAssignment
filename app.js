@@ -6,6 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 
+const twitterRoutes = require('./routes/twitter');
 const { connectDB } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
 const indexRoutes = require('./routes/index');
@@ -62,6 +63,7 @@ app.use('/groups', groupRoutes);
 app.use('/search', searchRoutes);
 app.use('/places', placeRoutes);
 app.use('/friends', friendRoutes);
+app.use('/twitter', twitterRoutes);   // Twitter/X integration, §33.iv
 
 // 7. 404. Reached only when no route above matched, so it must come after them.
 app.use((req, res, next) => {

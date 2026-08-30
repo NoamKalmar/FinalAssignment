@@ -1,6 +1,7 @@
 const Post = require('../models/Post');
 const Media = require('../models/Media');
 const Group = require('../models/Group');
+const twitter = require('../services/twitterService');
 const facebook = require('../services/facebookService');
 
 /**
@@ -138,7 +139,8 @@ const show = async (req, res, next) => {
         res.render('pages/post-show', {
             title: 'Post — SocialNet',
             post,
-            facebookConfigured: facebook.isConfigured()
+            facebookConfigured: facebook.isConfigured(),
+            twitterConfigured: twitter.isConfigured()
         });
     } catch (err) {
         next(isBadId(err) ? notFound() : err);

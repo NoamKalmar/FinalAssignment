@@ -54,6 +54,9 @@ const SCHEMA = {
             // Kept so we can read engagement back and delete the Page post
             // again (§33.iv).
             facebookPostId: { bsonType: ['string', 'null'] },
+            // The id Twitter returns on publish, used to read engagement back and
+            // to delete the tweet again (§33.iv).
+            twitterPostId:  { bsonType: ['string', 'null'] },  
             createdAt:      { bsonType: 'date' }
         }
     }
@@ -307,7 +310,19 @@ async function setFacebookShare(id, facebookPostId) {
     );
     return findById(id);
 }
-
+// Record that a post reached Twitter, and the id it got there (§33.iv).
+async function setTwitterShare(id, twitterPostId) {
+    await collection().updateOne(
+        { _id: new ObjectId(id) },
+        {
+            $set: {
+                twitterPostId: twitterPostId,
+                sharedToSocial: Boolean(twitterPostId)
+            }
+        }
+    );
+    return findById(id);
+}
 /**
  * Toggle a like in ONE database round trip.
  *
@@ -507,6 +522,7 @@ module.exports = {
     update,
     remove,
     setFacebookShare,
+    setTwitterShare,
     toggleLike,
     countAll,
     getPostTypeStats,
