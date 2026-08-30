@@ -18,6 +18,18 @@ function collection() {
 }
 
 /**
+ * User input is text to search for, not a regular expression.
+ *
+ * Passing it straight to $regex means "(" throws "missing closing
+ * parenthesis" and the user gets a 500, while "." silently matches every
+ * user. Escaping the metacharacters makes the search literal, which is what
+ * a search box is supposed to do (§29).
+ */
+function escapeRegex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * MongoDB's own schema validation. This is a native database feature, not
  * Mongoose — the database itself rejects documents that do not match, no
  * matter what wrote them: a controller, the seed script, or someone typing
@@ -113,7 +125,15 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
-// Mutual friendship: add to both users' friends array atomically.
+async function countAll() {
+    return collection().countDocuments();
+}
+
+// Mutual friendship: each user gets the other in their friends array.
+// NOT atomic — two separate writes, so a crash in between would leave a
+// one-way friendship. A transaction would close that but needs a replica set
+// and was not covered in the course. $addToSet at least makes each write
+// idempotent, so a retry can never create a duplicate.
 async function addFriend(userId, friendId) {
     const uId = new ObjectId(userId);
     const fId = new ObjectId(friendId);
@@ -170,8 +190,8 @@ async function getFriends(userId, search = '') {
     if (search && search.trim()) {
         const term = search.trim();
         query.$or = [
-            { username: { $regex: term, $options: 'i' } },
-            { fullName: { $regex: term, $options: 'i' } }
+            { username: { $regex: escapeRegex(term), $options: 'i' } },
+            { fullName: { $regex: escapeRegex(term), $options: 'i' } }
         ];
     }
 
@@ -194,8 +214,8 @@ async function findDiscoverable(currentUserId, search = '', limit = 30) {
     if (search && search.trim()) {
         const term = search.trim();
         query.$or = [
-            { username: { $regex: term, $options: 'i' } },
-            { fullName: { $regex: term, $options: 'i' } }
+            { username: { $regex: escapeRegex(term), $options: 'i' } },
+            { fullName: { $regex: escapeRegex(term), $options: 'i' } }
         ];
     }
 
@@ -234,6 +254,7 @@ module.exports = {
     findAll,
     update,
     remove,
+    countAll,
     addFriend,
     removeFriend,
     isFriend,

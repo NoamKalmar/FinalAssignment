@@ -1,0 +1,137 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:1050px;padding:32px 20px">
+
+    <header class="stats-page-header">
+        <div class="stats-badge">MY ACTIVITY & INSIGHTS</div>
+        <h1 style="font-size:2rem;margin:8px 0 6px;letter-spacing:-0.5px">Personal Statistics & Analytics</h1>
+        <p style="color:var(--muted);margin:0;font-size:0.95rem">
+            Activity and engagement summary for <strong><%= statsData.user.fullName %></strong> (@<%= statsData.user.username %>).
+        </p>
+    </header>
+
+    <!-- KPI Summary Grid -->
+    <section class="stats-kpi-grid">
+        <div class="stats-kpi-card">
+            <div class="kpi-icon" style="background:rgba(255,91,127,0.15);color:#ff5b7f">📝</div>
+            <div class="kpi-info">
+                <span class="kpi-value"><%= statsData.counts.posts %></span>
+                <span class="kpi-label">My Posts</span>
+            </div>
+        </div>
+        <div class="stats-kpi-card">
+            <div class="kpi-icon" style="background:rgba(108,140,255,0.15);color:#6c8cff">👥</div>
+            <div class="kpi-info">
+                <span class="kpi-value"><%= statsData.counts.friends %></span>
+                <span class="kpi-label">Friends</span>
+            </div>
+        </div>
+        <div class="stats-kpi-card">
+            <div class="kpi-icon" style="background:rgba(34,197,94,0.15);color:#22c55e">🌐</div>
+            <div class="kpi-info">
+                <span class="kpi-value"><%= statsData.counts.groups %></span>
+                <span class="kpi-label">Joined Groups</span>
+            </div>
+        </div>
+        <div class="stats-kpi-card">
+            <div class="kpi-icon" style="background:rgba(168,85,247,0.15);color:#a855f7">❤️</div>
+            <div class="kpi-info">
+                <span class="kpi-value"><%= statsData.counts.likes %></span>
+                <span class="kpi-label">Likes Received</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Charts Grid -->
+    <div class="stats-charts-grid">
+
+        <!-- Chart 1: Post Types (Donut) -->
+        <section class="stats-chart-card">
+            <div class="chart-header">
+                <div class="chart-title-wrap">
+                    <h3>My Content Distribution</h3>
+                    <p class="chart-subtitle">Breakdown of your text, image, and video posts</p>
+                </div>
+                <span class="chart-badge">D3 Donut Chart</span>
+            </div>
+            <div id="post-types-chart" class="chart-body"></div>
+        </section>
+
+        <!-- Chart 2: Groups by Category (Bar Chart) -->
+        <section class="stats-chart-card">
+            <div class="chart-header">
+                <div class="chart-title-wrap">
+                    <h3>My Groups by Category</h3>
+                    <p class="chart-subtitle">Categories of community groups you have joined</p>
+                </div>
+                <span class="chart-badge">D3 Bar Chart</span>
+            </div>
+            <div id="group-categories-chart" class="chart-body"></div>
+        </section>
+
+    </div>
+
+    <!-- Chart 3: Post Activity Timeline (Full Width Area Chart) -->
+    <section class="stats-chart-card" style="margin-top:24px">
+        <div class="chart-header">
+            <div class="chart-title-wrap">
+                <h3>My Posting Activity Trends</h3>
+                <p class="chart-subtitle">Your post creation frequency over time</p>
+            </div>
+            <span class="chart-badge">D3 Timeline Curve</span>
+        </div>
+        <div id="activity-timeline-chart" class="chart-body" style="min-height:240px"></div>
+    </section>
+
+</main>
+
+<script id="stats-data" type="application/json">
+    <%- JSON.stringify(statsData || {}) %>
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const statsData = JSON.parse(document.getElementById('stats-data').textContent || '{}');
+
+        // 1. Render Post Content Distribution Donut Chart
+        const postTypeColors = {
+            text: '#6c8cff',
+            image: '#ff5b7f',
+            video: '#22c55e'
+        };
+
+        const formattedPostTypes = (statsData.postTypes || []).map(item => ({
+            label: item.type,
+            value: item.count,
+            color: postTypeColors[item.type] || '#ff9a5b'
+        }));
+
+        SocialNetCharts.renderDonutChart('#post-types-chart', formattedPostTypes, {
+            centerLabel: 'Posts',
+            innerRadius: 65,
+            width: 380,
+            height: 250,
+            showLegend: true
+        });
+
+        // 2. Render Group Categories Bar Chart
+        SocialNetCharts.renderBarChart('#group-categories-chart', statsData.categoryStats || [], {
+            xKey: 'category',
+            yKey: 'groupCount',
+            yLabel: 'Joined Groups',
+            barColor: '#6c8cff',
+            barColorEnd: '#3b82f6',
+            width: 480,
+            height: 250
+        });
+
+        // 3. Render Post Activity Timeline Chart
+        SocialNetCharts.renderTimelineChart('#activity-timeline-chart', statsData.activityTimeline || [], {
+            width: 960,
+            height: 230
+        });
+    });
+</script>
+
+<%- include('../partials/footer') %>

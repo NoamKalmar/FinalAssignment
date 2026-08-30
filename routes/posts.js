@@ -36,6 +36,8 @@ router.post('/:id/edit',
     handleUploadErrors,
     postController.update);
 
+router.post('/:id/like', postController.toggleLike);
+
 router.post('/:id/delete', isOwner(Post, 'author'), postController.remove);
 
 module.exports = router;

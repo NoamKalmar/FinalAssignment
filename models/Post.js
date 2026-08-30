@@ -213,6 +213,145 @@ async function remove(id) {
     return result.deletedCount === 1;
 }
 
+/**
+ * Toggle a like in ONE database round trip.
+ *
+ * The obvious version — read the post, decide, write, read again — is four
+ * calls and has a race: two fast clicks both read "not liked" and both add,
+ * or both read "liked" and both remove. Between the read and the write,
+ * anything can happen.
+ *
+ * Instead we let the query itself decide. The filter asks "is this user
+ * already in likes?" and picks $pull or $addToSet accordingly, so the check
+ * and the change happen as a single operation the database cannot interleave.
+ * returnDocument:'after' hands back the updated post, so no second read.
+ */
+async function toggleLike(postId, userId) {
+    const postObjId = new ObjectId(postId);
+    const userObjId = new ObjectId(userId);
+
+    // One read to learn the current state...
+    const existing = await collection().findOne(
+        { _id: postObjId },
+        { projection: { likes: 1 } }
+    );
+    if (!existing) throw new Error('Post not found');
+
+    const hasLiked = (existing.likes || []).some(id => userObjId.equals(id));
+
+    // ...and one conditional write. The `likes` clause in the filter means
+    // the update only applies if the state is still what we just read; if a
+    // parallel click got there first, matchedCount is 0 and nothing happens
+    // twice.
+    const updated = await collection().findOneAndUpdate(
+        hasLiked
+            ? { _id: postObjId, likes: userObjId }
+            : { _id: postObjId, likes: { $ne: userObjId } },
+        hasLiked
+            ? { $pull: { likes: userObjId } }
+            : { $addToSet: { likes: userObjId } },
+        { returnDocument: 'after', projection: { likes: 1 } }
+    );
+
+    // No match means a concurrent click already applied this change. Report
+    // the state as it actually stands rather than guessing.
+    const likes = (updated && updated.likes) || existing.likes || [];
+
+    return {
+        hasLiked: likes.some(id => userObjId.equals(id)),
+        likesCount: likes.length
+    };
+}
+
+async function countAll() {
+    return collection().countDocuments();
+}
+
+async function getPostTypeStats() {
+    const results = await collection().aggregate([
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = { text: 0, image: 0, video: 0 };
+    results.forEach(r => { if (r._id) counts[r._id] = r.count; });
+    return Object.keys(counts).map(type => ({ type, count: counts[type] }));
+}
+
+async function getGroupPostTypeStats(groupId) {
+    const results = await collection().aggregate([
+        { $match: { group: new ObjectId(groupId) } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = { text: 0, image: 0, video: 0 };
+    results.forEach(r => { if (r._id) counts[r._id] = r.count; });
+    return Object.keys(counts).map(type => ({ type, count: counts[type] }));
+}
+
+async function getGroupTopContributors(groupId, limit = 5) {
+    return collection().aggregate([
+        { $match: { group: new ObjectId(groupId) } },
+        { $group: { _id: '$author', postCount: { $sum: 1 } } },
+        { $sort: { postCount: -1 } },
+        { $limit: limit },
+        {
+            $lookup: {
+                from: 'users',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'userDoc'
+            }
+        },
+        { $unwind: '$userDoc' },
+        {
+            $project: {
+                userId: '$_id',
+                username: '$userDoc.username',
+                fullName: '$userDoc.fullName',
+                postCount: 1
+            }
+        }
+    ]).toArray();
+}
+
+async function getPostActivityTimeline() {
+    return collection().aggregate([
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 }
+            }
+        },
+        { $sort: { _id: 1 } },
+        { $project: { date: '$_id', count: 1, _id: 0 } }
+    ]).toArray();
+}
+
+async function getUserStats(userId) {
+    const typeResults = await collection().aggregate([
+        { $match: { author: new ObjectId(userId) } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+    ]).toArray();
+    const counts = { text: 0, image: 0, video: 0 };
+    typeResults.forEach(r => { if (r._id) counts[r._id] = r.count; });
+
+    const likesResult = await collection().aggregate([
+        { $match: { author: new ObjectId(userId) } },
+        { $group: { _id: null, totalLikes: { $sum: { $size: { $ifNull: ['$likes', []] } } }, totalPosts: { $sum: 1 } } }
+    ]).toArray();
+
+    return {
+        types: Object.keys(counts).map(type => ({ type, count: counts[type] })),
+        totalPosts: likesResult[0] ? likesResult[0].totalPosts : 0,
+        totalLikes: likesResult[0] ? likesResult[0].totalLikes : 0
+    };
+}
+
+async function getTotalLikesCount() {
+    const res = await collection().aggregate([
+        { $group: { _id: null, totalLikes: { $sum: { $size: { $ifNull: ['$likes', []] } } } } }
+    ]).toArray();
+    return res[0] ? res[0].totalLikes : 0;
+}
+
 // Feed query (§27): Posts from friends, own posts, and groups the user belongs to.
 // MongoDB's $match with $or guarantees every matching post is returned exactly once.
 async function findFeedPosts({ userId, friendIds = [], groupIds = [] }) {
@@ -240,6 +379,20 @@ async function findFeedPosts({ userId, friendIds = [], groupIds = [] }) {
         .toArray();
 }
 
+async function getUserPostActivityTimeline(userId) {
+    return collection().aggregate([
+        { $match: { author: new ObjectId(userId) } },
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 }
+            }
+        },
+        { $sort: { _id: 1 } },
+        { $project: { date: '$_id', count: 1, _id: 0 } }
+    ]).toArray();
+}
+
 module.exports = {
     COLLECTION,
     applySchema,
@@ -256,5 +409,14 @@ module.exports = {
     detachFromGroup,
     findFeedPosts,
     update,
-    remove
+    remove,
+    toggleLike,
+    countAll,
+    getPostTypeStats,
+    getGroupPostTypeStats,
+    getGroupTopContributors,
+    getPostActivityTimeline,
+    getUserPostActivityTimeline,
+    getUserStats,
+    getTotalLikesCount
 };
