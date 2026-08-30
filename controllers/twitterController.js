@@ -33,10 +33,21 @@ const share = async (req, res, next) => {
             return next(err);
         }
 
-        // 280 is X's hard limit; anything longer is rejected outright.
-        const text = post.content.slice(0, 280);
+        // X refuses a tweet whose text matches one already posted, which is
+        // easy to hit during a demo. Signing each message with the author
+        // makes otherwise-identical posts distinct — the same reason the
+        // Facebook service does it.
+        //
+        // The suffix is measured first so a long post loses its own tail
+        // rather than the signature: 280 is X's hard limit and anything
+        // longer is rejected outright.
+        const signature = '\n\n— ' + req.session.user.fullName + ' on SocialNet';
+        const room = 280 - signature.length;
+        const body = post.content.length > room
+            ? post.content.slice(0, room - 1).trimEnd() + '…'
+            : post.content;
 
-        const tweetId = await twitterService.publish(text);
+        const tweetId = await twitterService.publish(body + signature);
         await Post.setTwitterShare(req.params.id, tweetId);
 
         res.redirect('/posts/' + req.params.id);
