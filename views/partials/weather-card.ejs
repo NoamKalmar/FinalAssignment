@@ -1,0 +1,26 @@
+<%
+/* Weather card — §33.ii.
+   Rendered from data our own server fetched and reshaped. Not an iframe,
+   not an embedded third-party widget.
+   Expects: w (the object from services/weatherService), or null. */
+%>
+<% if (w) { %>
+<section class="weather-card">
+    <div class="wx-main">
+        <span class="wx-icon" aria-hidden="true"><%= w.icon %></span>
+        <div>
+            <div class="wx-temp"><%= w.temperature %>&deg;C</div>
+            <div class="wx-desc"><%= w.description %></div>
+        </div>
+    </div>
+    <dl class="wx-detail">
+        <div><dt>Feels like</dt><dd><%= w.feelsLike %>&deg;</dd></div>
+        <div><dt>Humidity</dt><dd><%= w.humidity %>%</dd></div>
+        <div><dt>Wind</dt><dd><%= w.wind %> km/h</dd></div>
+    </dl>
+    <p class="wx-src">
+        <%= w.place || 'Current location' %> &middot;
+        live from Open-Meteo
+    </p>
+</section>
+<% } %>

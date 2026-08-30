@@ -73,7 +73,15 @@ const update = async (req, res, next) => {
             });
         }
 
+        // The canvas hands us a data: URI. Accept only a PNG one, and cap the
+        // size — a hidden field is user input like any other (§29).
+        const avatar = (req.body.avatarData || '').trim();
+        const avatarUrl = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(avatar) && avatar.length < 200000
+            ? avatar
+            : undefined;
+
         const updated = await User.update(req.session.user._id, {
+            ...(avatarUrl ? { avatarUrl } : {}),
             fullName,
             email,
             bio,

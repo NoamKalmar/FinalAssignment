@@ -1,0 +1,154 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:1000px">
+
+    <div class="list-head">
+        <div>
+            <h1 style="font-size:1.4rem;margin:0">Places</h1>
+            <p style="color:var(--muted);font-size:.85rem;margin:2px 0 0">
+                Click anywhere on the map to add a place, or search for one by name.
+            </p>
+        </div>
+    </div>
+
+    <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <% if (!mapsKey) { %>
+        <div class="alert alert-error">
+            No Google Maps key configured. Set <code>GOOGLE_MAPS_API_KEY</code> in
+            <code>.env</code> and restart the server.
+        </div>
+    <% } %>
+
+    <div class="map-toolbar">
+        <input class="field" id="place-search" type="text"
+               placeholder="Find a place by name — e.g. Haifa" autocomplete="off">
+        <button class="btn btn-outline btn-inline" type="button" id="search-go">Find</button>
+        <span class="map-hint" id="map-hint">Click the map to drop a pin</span>
+    </div>
+
+    <%# §33.iii — the map itself. Markers are drawn from the database. %>
+    <div id="map" class="map-canvas"></div>
+
+    <section id="place-form-wrap" class="place-form" hidden>
+        <h2 style="font-size:1rem;margin:0 0 12px" id="form-title">Add a place</h2>
+
+        <form method="POST" id="place-form" action="/places">
+            <div class="place-grid">
+                <div>
+                    <label class="label" for="pl-name">Name</label>
+                    <input class="field" id="pl-name" name="name" type="text"
+                           minlength="2" maxlength="100" required>
+                </div>
+                <div>
+                    <label class="label" for="pl-category">Category</label>
+                    <input class="field" id="pl-category" name="category" type="text"
+                           maxlength="40" placeholder="cafe, park, campus…">
+                </div>
+                <div class="pl-wide">
+                    <label class="label" for="pl-address">Address</label>
+                    <input class="field" id="pl-address" name="address" type="text" maxlength="200">
+                </div>
+                <div>
+                    <label class="label" for="pl-lat">Latitude</label>
+                    <input class="field" id="pl-lat" name="lat" type="number" step="any" required readonly>
+                </div>
+                <div>
+                    <label class="label" for="pl-lng">Longitude</label>
+                    <input class="field" id="pl-lng" name="lng" type="number" step="any" required readonly>
+                </div>
+            </div>
+
+            <div class="place-actions">
+                <button class="btn btn-primary btn-inline" type="submit" id="form-submit">Save place</button>
+                <button class="btn btn-outline btn-inline" type="button" id="form-cancel">Cancel</button>
+            </div>
+        </form>
+    </section>
+
+    <h2 style="font-size:1.05rem;margin:26px 0 10px">
+        Saved places <span class="count" style="font-weight:400">(<%= places.length %>)</span>
+    </h2>
+
+    <% if (!places.length) { %>
+        <p class="empty-state">No places yet. Click the map above to add the first one.</p>
+    <% } else { %>
+        <div class="place-list">
+            <% places.forEach(p => { %>
+                <article class="place-row" data-lat="<%= p.lat %>" data-lng="<%= p.lng %>">
+                    <div class="place-body">
+                        <strong><%= p.name %></strong>
+                        <span class="place-meta">
+                            <%= p.category %>
+                            <% if (p.address) { %>&middot; <%= p.address %><% } %>
+                            &middot; added by <%= p.creator && p.creator.username ? p.creator.username : 'unknown' %>
+                        </span>
+                    </div>
+                    <span class="place-coords"><%= p.lat.toFixed(4) %>, <%= p.lng.toFixed(4) %></span>
+
+                    <%# Only the creator sees these — isOwner enforces it server-side (§25). %>
+                    <% if (String(p.createdBy) === String(currentUser._id)) { %>
+                        <span class="place-tools">
+                            <button class="linklike" type="button"
+                                    data-edit="<%= p._id %>"
+                                    data-name="<%= p.name %>"
+                                    data-category="<%= p.category %>"
+                                    data-address="<%= p.address %>"
+                                    data-lat="<%= p.lat %>"
+                                    data-lng="<%= p.lng %>">edit</button>
+                            <form method="POST" action="/places/<%= p._id %>/delete"
+                                  onsubmit="return confirm('Delete <%= p.name %>?')">
+                                <button class="linklike danger" type="submit">delete</button>
+                            </form>
+                        </span>
+                    <% } %>
+                </article>
+            <% }) %>
+        </div>
+    <% } %>
+
+</main>
+
+<script id="places-data" type="application/json">
+    <%- JSON.stringify(places.map(p => ({
+        _id: p._id, name: p.name, category: p.category, address: p.address,
+        lat: p.lat, lng: p.lng,
+        creator: p.creator && p.creator.username ? p.creator.username : 'unknown',
+        mine: String(p.createdBy) === String(currentUser._id)
+    }))) %>
+</script>
+
+<% if (mapsKey) { %>
+    <script>
+        /* Google calls this when it rejects the API key. Without it the user
+           gets Google's generic grey "Oops! Something went wrong" panel with
+           no indication of what to fix. */
+        window.gm_authFailure = function () {
+            var el = document.getElementById('map');
+            if (!el) return;
+            el.innerHTML =
+                '<div class="map-error">' +
+                  '<strong>Google rejected the API key.</strong>' +
+                  '<p>Usually one of:</p>' +
+                  '<ul>' +
+                    '<li>the key\'s website restriction does not list ' +
+                      '<code>' + window.location.origin + '/*</code></li>' +
+                    '<li>Maps JavaScript API is not enabled on the project</li>' +
+                    '<li>billing is not linked to that project</li>' +
+                    '<li>the restriction was saved less than five minutes ago</li>' +
+                  '</ul>' +
+                  '<p>Open DevTools &rarr; Console for Google\'s exact error name.</p>' +
+                '</div>';
+        };
+    </script>
+    <script src="/js/places-map.js"></script>
+    <%# loading=async is Google's recommended pattern; without it the API logs
+        a performance warning. callback= defers init until the API is ready. %>
+    <script async
+            src="https://maps.googleapis.com/maps/api/js?key=<%= mapsKey %>&loading=async&callback=initPlacesMap"></script>
+<% } %>
+
+<%- include('../partials/footer') %>

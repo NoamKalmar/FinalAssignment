@@ -24,4 +24,9 @@ router.post('/profile/delete', isAuth, userController.remove);
 // View another user's public profile and friend status
 router.get('/users/:id', isAuth, userController.showUser);
 
+// Static content page. Public — it describes the project and needs no login.
+router.get('/about', (req, res) => {
+    res.render('pages/about', { title: 'About — SocialNet' });
+});
+
 module.exports = router;

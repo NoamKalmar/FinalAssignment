@@ -7,6 +7,53 @@
 
             <%- include('../partials/post-card', { post }) %>
 
+    <%# §33.iv — Facebook. Visible to the author only; isOwner enforces it.
+        Also hidden when the server has no Page credentials, so a machine
+        without a token shows a clean page instead of a button that 503s. %>
+    <% if (facebookConfigured && String(post.author._id) === String(currentUser._id)) { %>
+        <section class="fb-panel">
+            <div class="fb-head">
+                <h2>Facebook</h2>
+                <% if (post.facebookPostId) { %>
+                    <span class="badge admin">shared</span>
+                <% } %>
+            </div>
+
+            <% if (!post.facebookPostId) { %>
+                <p class="fb-note">
+                    Publish this post to the SocialNet Facebook Page. The server
+                    calls the Graph API directly &mdash; this is not a share widget.
+                </p>
+                <form method="POST" action="/posts/<%= post._id %>/share">
+                    <button class="btn btn-primary btn-inline" type="submit">Share to Facebook</button>
+                </form>
+            <% } else { %>
+                <div id="fb-engagement" class="fb-engagement">reading engagement from Facebook&hellip;</div>
+                <form method="POST" action="/posts/<%= post._id %>/unshare"
+                      onsubmit="return confirm('Remove this post from the Facebook Page?')">
+                    <button class="btn btn-outline btn-inline" type="submit">Remove from Facebook</button>
+                </form>
+                <script>
+                    // The receive half of §33.iv: our server asks Graph for the
+                    // like and comment totals, we render them here.
+                    fetch('/posts/<%= post._id %>/engagement')
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            var el = document.getElementById('fb-engagement');
+                            if (!d.ok) { el.textContent = 'Facebook engagement unavailable right now.'; return; }
+                            el.innerHTML =
+                                '<span class="fb-stat"><strong>' + d.likes + '</strong> likes</span>' +
+                                '<span class="fb-stat"><strong>' + d.comments + '</strong> comments</span>' +
+                                (d.permalink ? '<a class="fb-link" target="_blank" rel="noopener" href="' + d.permalink + '">view on Facebook &rarr;</a>' : '');
+                        })
+                        .catch(function () {
+                            document.getElementById('fb-engagement').textContent = 'Facebook engagement unavailable right now.';
+                        });
+                </script>
+            <% } %>
+        </section>
+    <% } %>
+
         </main>
 
         <%- include('../partials/footer') %>

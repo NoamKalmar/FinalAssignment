@@ -78,6 +78,38 @@ async function findAll() {
     return collection().find({}).sort({ name: 1 }).toArray();
 }
 
+/**
+ * The same list with the creator's name attached, so a marker's info window
+ * can say who added it. One $lookup instead of a query per place.
+ */
+async function findAllWithCreator() {
+    return collection()
+        .aggregate([
+            { $sort: { name: 1 } },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'createdBy',
+                    foreignField: '_id',
+                    as: 'creatorDoc'
+                }
+            },
+            // A place whose creator deleted their account still belongs on the
+            // map, so keep it rather than dropping the row.
+            { $unwind: { path: '$creatorDoc', preserveNullAndEmptyArrays: true } },
+            {
+                $addFields: {
+                    creator: {
+                        username: '$creatorDoc.username',
+                        fullName: '$creatorDoc.fullName'
+                    }
+                }
+            },
+            { $project: { creatorDoc: 0 } }
+        ])
+        .toArray();
+}
+
 async function update(id, fields) {
     await collection().updateOne({ _id: new ObjectId(id) }, { $set: fields });
     return findById(id);
@@ -99,6 +131,7 @@ module.exports = {
     create,
     findById,
     findAll,
+    findAllWithCreator,
     update,
     remove,
     countAll

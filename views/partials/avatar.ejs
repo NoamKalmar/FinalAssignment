@@ -1,0 +1,15 @@
+<%
+/* One avatar component used everywhere.
+   Shows the canvas-generated picture when the user has one, and falls back
+   to CSS-drawn initials when they don't.
+   Expects: u (a user with fullName and optionally avatarUrl), cls (optional
+   extra class such as 'sm' or 'lg'). */
+const _cls = (typeof cls !== 'undefined' && cls) ? ' ' + cls : '';
+const _initials = (u && u.fullName ? u.fullName : '?')
+    .split(' ').map(w => w[0]).slice(0, 2).join('');
+%>
+<% if (u && u.avatarUrl) { %>
+    <img class="avatar<%= _cls %>" src="<%= u.avatarUrl %>" alt="">
+<% } else { %>
+    <span class="avatar<%= _cls %>"><%= _initials %></span>
+<% } %>

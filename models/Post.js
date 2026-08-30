@@ -26,6 +26,15 @@ function collection() {
     return getDB().collection(COLLECTION);
 }
 
+/**
+ * Search input is text to look for, not a regular expression.
+ * Without this, searching for "(" throws "missing closing parenthesis" and
+ * returns a 500, while "." quietly matches every post (§29).
+ */
+function escapeRegex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const SCHEMA = {
     $jsonSchema: {
         bsonType: 'object',
@@ -41,6 +50,10 @@ const SCHEMA = {
             place:          { bsonType: ['objectId', 'null'] },
             likes:          { bsonType: 'array' },
             sharedToSocial: { bsonType: 'bool' },
+            // The id Facebook returns on publish, "{page-id}_{post-id}".
+            // Kept so we can read engagement back and delete the Page post
+            // again (§33.iv).
+            facebookPostId: { bsonType: ['string', 'null'] },
             createdAt:      { bsonType: 'date' }
         }
     }
@@ -139,6 +152,74 @@ const WITH_AUTHOR = [
     { $project: { authorDoc: 0, groupDoc: 0 } }
 ];
 
+/**
+ * Advanced post search — §23, query 1. Six optional parameters:
+ * keyword, type, date from, date to, tag, group.
+ *
+ * Each supplied parameter narrows the result. Omitted ones are left out of
+ * the filter entirely rather than matched against a wildcard, so an empty
+ * form returns everything and every field genuinely restricts.
+ *
+ * $match runs BEFORE the $lookup stages, so author and group documents are
+ * only joined for posts that already survived the filter.
+ */
+async function search(params = {}) {
+    const filter = {};
+
+    if (params.keyword && params.keyword.trim()) {
+        filter.content = {
+            $regex: escapeRegex(params.keyword.trim()),
+            $options: 'i'
+        };
+    }
+
+    if (params.type && TYPES.includes(params.type)) {
+        filter.type = params.type;
+    }
+
+    // Anchored so "web" does not match the tag "webdev".
+    if (params.tag && params.tag.trim()) {
+        const tag = params.tag.trim().replace(/^#/, '');
+        filter.tags = { $regex: '^' + escapeRegex(tag) + '$', $options: 'i' };
+    }
+
+    if (params.group) {
+        try {
+            filter.group = new ObjectId(params.group);
+        } catch {
+            // A malformed group id should return nothing, not throw.
+            return [];
+        }
+    }
+
+    // Date range — both bounds optional, so only build the object if at
+    // least one is present.
+    const range = {};
+    if (params.from) {
+        const d = new Date(params.from);
+        if (!isNaN(d)) range.$gte = d;
+    }
+    if (params.to) {
+        const d = new Date(params.to);
+        // "Up to and including this day". A bare date parses as midnight,
+        // which would exclude everything posted during that day.
+        if (!isNaN(d)) {
+            d.setHours(23, 59, 59, 999);
+            range.$lte = d;
+        }
+    }
+    if (Object.keys(range).length) filter.createdAt = range;
+
+    return collection()
+        .aggregate([
+            { $match: filter },
+            { $sort: { createdAt: -1 } },
+            { $limit: 100 },
+            ...WITH_AUTHOR
+        ])
+        .toArray();
+}
+
 async function findByIdWithAuthor(id) {
     const rows = await collection()
         .aggregate([{ $match: { _id: new ObjectId(id) } }, ...WITH_AUTHOR])
@@ -211,6 +292,20 @@ async function update(id, fields) {
 async function remove(id) {
     const result = await collection().deleteOne({ _id: new ObjectId(id) });
     return result.deletedCount === 1;
+}
+
+// Record that a post reached Facebook, and the id it got there (§33.iv).
+async function setFacebookShare(id, facebookPostId) {
+    await collection().updateOne(
+        { _id: new ObjectId(id) },
+        {
+            $set: {
+                facebookPostId: facebookPostId,
+                sharedToSocial: Boolean(facebookPostId)
+            }
+        }
+    );
+    return findById(id);
 }
 
 /**
@@ -401,6 +496,7 @@ module.exports = {
     create,
     findById,
     findByIdWithAuthor,
+    search,
     findAll,
     findByAuthor,
     findByAuthorWithAuthor,
@@ -410,6 +506,7 @@ module.exports = {
     findFeedPosts,
     update,
     remove,
+    setFacebookShare,
     toggleLike,
     countAll,
     getPostTypeStats,

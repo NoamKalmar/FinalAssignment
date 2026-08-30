@@ -13,6 +13,8 @@ const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const mediaRoutes = require('./routes/media');
 const groupRoutes = require('./routes/groups');
+const searchRoutes = require('./routes/search');
+const placeRoutes = require('./routes/places');
 const friendRoutes = require('./routes/friends');
 
 const app = express();
@@ -57,6 +59,8 @@ app.use('/', authRoutes);
 app.use('/posts', postRoutes);
 app.use('/media', mediaRoutes);
 app.use('/groups', groupRoutes);
+app.use('/search', searchRoutes);
+app.use('/places', placeRoutes);
 app.use('/friends', friendRoutes);
 
 // 7. 404. Reached only when no route above matched, so it must come after them.

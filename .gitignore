@@ -19,3 +19,6 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# one-off local helper, holds secrets while in use
+get-fb-token.js

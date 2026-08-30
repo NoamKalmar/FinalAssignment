@@ -11,7 +11,7 @@ const hasLiked = currentUser && likesList.some(id => String(id) === String(curre
 <article class="post" id="post-<%= post._id %>">
 
     <header class="post-head">
-        <div class="avatar"><%= initials %></div>
+        <%- include('avatar', { u: post.author }) %>
         <div>
             <div class="post-author"><a href="/users/<%= post.author._id %>"><%= post.author.fullName %></a></div>
             <div class="post-meta">
