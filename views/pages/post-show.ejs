@@ -7,8 +7,10 @@
 
             <%- include('../partials/post-card', { post }) %>
 
-    <%# §33.iv — Facebook. Visible to the author only; isOwner enforces it. %>
-    <% if (String(post.author._id) === String(currentUser._id)) { %>
+    <%# §33.iv — Facebook. Visible to the author only; isOwner enforces it.
+        Also hidden when the server has no Page credentials, so a machine
+        without a token shows a clean page instead of a button that 503s. %>
+    <% if (facebookConfigured && String(post.author._id) === String(currentUser._id)) { %>
         <section class="fb-panel">
             <div class="fb-head">
                 <h2>Facebook</h2>

@@ -133,7 +133,13 @@ const show = async (req, res, next) => {
     try {
         const post = await Post.findByIdWithAuthor(req.params.id);
         if (!post) return next(notFound());
-        res.render('pages/post-show', { title: 'Post — SocialNet', post });
+        // The Facebook panel is hidden entirely when no credentials are set,
+        // rather than offering a button that can only fail (§33.iv).
+        res.render('pages/post-show', {
+            title: 'Post — SocialNet',
+            post,
+            facebookConfigured: facebook.isConfigured()
+        });
     } catch (err) {
         next(isBadId(err) ? notFound() : err);
     }
