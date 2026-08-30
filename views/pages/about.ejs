@@ -1,0 +1,78 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container doc-page" style="max-width:820px">
+
+    <h1>About SocialNet</h1>
+    <p class="doc-lead">
+        A social network built as a final project for the Web Application
+        Development course.
+    </p>
+
+    <%# §32.iii — multiple-columns. Long-form text is where newspaper columns
+        genuinely help; column-width lets the browser drop to one column on a
+        narrow screen without a media query. %>
+    <div class="prose-columns">
+
+        <p>
+            SocialNet lets people post text, images and video, form groups around
+            shared interests, connect with friends, and see a feed drawn from both.
+            Everything you see was written by our team.
+        </p>
+
+        <h3>How it is built</h3>
+        <p>
+            The server runs on Node.js with Express, following the
+            Model&ndash;View&ndash;Controller pattern. Views are rendered with EJS.
+            Data lives in MongoDB, accessed through the official native driver
+            rather than an ORM.
+        </p>
+        <p>
+            Document shapes are enforced by MongoDB's own <code>$jsonSchema</code>
+            validators, so a malformed record is rejected by the database itself
+            rather than relying on application code remembering to check.
+        </p>
+
+        <h3>Security</h3>
+        <p>
+            Passwords are never stored. They are hashed with bcrypt, which is
+            deliberately slow and salts every password individually, so two people
+            choosing the same password still produce different hashes.
+        </p>
+        <p>
+            Sessions hold only an identifier and a display name. Access rules are
+            enforced on the server: hiding a button in the interface is a courtesy,
+            not a security measure, so every restricted action is checked again
+            before it runs.
+        </p>
+
+        <h3>Live data</h3>
+        <p>
+            The statistics pages are drawn with D3.js from aggregation queries that
+            run against the database when you load the page &mdash; nothing is
+            precomputed or hard-coded.
+        </p>
+        <p>
+            Weather is fetched from Open-Meteo by our own server, interpreted, and
+            rendered with our markup. The service returns numeric weather codes; the
+            words and icons you see are produced by us.
+        </p>
+
+        <h3>Interface</h3>
+        <p>
+            Search updates as you type using asynchronous requests, with input
+            debounced so a keystroke is not a database query, and superseded
+            requests cancelled so results never arrive out of order.
+        </p>
+        <p>
+            The stylesheet is written from scratch &mdash; no framework, no template.
+            Type is set in Outfit, a variable typeface under the SIL Open Font
+            Licence, served from our own server so the site looks right without an
+            internet connection.
+        </p>
+
+    </div>
+
+</main>
+
+<%- include('../partials/footer') %>

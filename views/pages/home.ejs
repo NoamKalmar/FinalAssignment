@@ -1,0 +1,41 @@
+<%- include('../partials/head') %>
+
+<div class="split">
+
+    <section class="panel">
+        <span class="wordmark">SocialNet</span>
+        <h2 class="headline">
+            Everything happening<br>
+            in <em>your groups</em>.
+        </h2>
+    </section>
+
+    <aside class="sidebar">
+        <!-- The login form is wired up in M1. Markup only for now. -->
+        <form class="form" method="POST" action="/login">
+            <h1>Log into SocialNet</h1>
+
+            <% if (typeof error !== 'undefined' && error) { %>
+                <div class="alert alert-error"><%= error %></div>
+            <% } %>
+
+            <input class="field" type="text" name="username"
+                   placeholder="Username" autocomplete="username" required>
+            <input class="field" type="password" name="password"
+                   placeholder="Password" autocomplete="current-password" required>
+
+            <button class="btn btn-primary" type="submit">Log in</button>
+
+            <a class="link-center" href="/forgot">Forgot password?</a>
+
+            <a href="/register">
+                <button class="btn btn-outline accent" type="button">Create new account</button>
+            </a>
+
+            <p class="byline">Final project &middot; Web Application Development</p>
+        </form>
+    </aside>
+
+</div>
+
+<%- include('../partials/footer') %>

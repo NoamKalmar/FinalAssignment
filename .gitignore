@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment — NEVER commit. Real secrets live here.
+.env
+.env.local
+
+# User uploads (keep the folder, ignore its contents)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# one-off local helper, holds secrets while in use
+get-fb-token.js

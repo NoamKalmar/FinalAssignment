@@ -1,0 +1,174 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<main class="container" style="max-width:900px">
+
+    <p style="margin:0 0 14px"><a class="back" href="/groups">&larr; All groups</a></p>
+
+    <header class="group-header">
+        <div>
+            <h1><%= group.name %></h1>
+            <p class="group-cat"><%= group.category %> &middot;
+               <%= group.members.length %> member<%= group.members.length === 1 ? '' : 's' %>
+               <% if (isAdmin) { %><span class="badge admin">You are an admin</span><% } %>
+            </p>
+            <p class="group-desc"><%= group.description || 'No description.' %></p>
+        </div>
+
+        <div class="group-actions">
+            <% if (!isMember) { %>
+                <form method="POST" action="/groups/<%= group._id %>/join">
+                    <button class="btn btn-primary btn-inline" type="submit">Join group</button>
+                </form>
+            <% } else { %>
+                <form method="POST" action="/groups/<%= group._id %>/leave"
+                      onsubmit="return confirm('Leave this group?')">
+                    <button class="btn btn-outline btn-inline" type="submit">Leave</button>
+                </form>
+            <% } %>
+
+            <%# §26 — these appear only for admins, and isGroupAdmin enforces it server-side %>
+            <% if (isAdmin) { %>
+                <a href="/groups/<%= group._id %>/edit">
+                    <button class="btn btn-outline btn-inline" type="button">Edit</button>
+                </a>
+                <form method="POST" action="/groups/<%= group._id %>/delete"
+                      onsubmit="return confirm('Delete this group? Its posts become personal posts.')">
+                    <button class="btn btn-outline btn-inline danger-btn" type="submit">Delete</button>
+                </form>
+            <% } %>
+        </div>
+    </header>
+
+    <div class="group-body">
+
+        <section class="group-posts">
+            <div class="list-head">
+                <h2 style="font-size:1.05rem;margin:0">Posts</h2>
+                <% if (isMember) { %>
+                    <a href="/posts/new?group=<%= group._id %>">
+                        <button class="btn btn-primary btn-inline" type="button">Post here</button>
+                    </a>
+                <% } %>
+            </div>
+
+            <% if (!posts.length) { %>
+                <p class="empty-state">
+                    <%= isMember ? 'Nothing posted here yet.' : 'Join to post in this group.' %>
+                </p>
+            <% } else { %>
+                <% posts.forEach(post => { %>
+                    <%- include('../partials/post-card', { post }) %>
+                <% }) %>
+            <% } %>
+        </section>
+
+        <aside class="group-members">
+            <h2 style="font-size:.82rem;color:var(--muted);letter-spacing:1px;margin:0 0 12px">
+                MEMBERS
+            </h2>
+            <% group.members.forEach(m => { %>
+                <div class="member-row">
+                    <div class="avatar sm">
+                        <%= (m.user.fullName || '?').split(' ').map(w => w[0]).slice(0,2).join('') %>
+                    </div>
+                    <div class="member-name">
+                        <%= m.user.fullName %>
+                        <span class="member-handle">@<%= m.user.username %></span>
+                    </div>
+                    <% if (m.role === 'admin') { %><span class="badge admin">admin</span><% } %>
+
+                    <% if (isAdmin && String(m.user._id) !== String(currentUser._id)) { %>
+                        <span class="member-tools">
+                            <% if (m.role !== 'admin') { %>
+                                <form method="POST"
+                                      action="/groups/<%= group._id %>/members/<%= m.user._id %>/promote">
+                                    <button class="linklike" type="submit" title="Make admin">promote</button>
+                                </form>
+                            <% } %>
+                            <form method="POST"
+                                  action="/groups/<%= group._id %>/members/<%= m.user._id %>/remove"
+                                  onsubmit="return confirm('Remove <%= m.user.username %> from the group?')">
+                                <button class="linklike danger" type="submit">remove</button>
+                            </form>
+                        </span>
+                    <% } %>
+                </div>
+            <% }) %>
+        </aside>
+
+    </div>
+
+    <!-- Group Analytics & Statistics Section (D3.js) -->
+    <section class="group-stats-section" style="margin-top:36px;padding-top:24px;border-top:1px solid var(--divider)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+            <div>
+                <h2 style="font-size:1.15rem;margin:0 0 4px">Group Analytics & Insights</h2>
+                <p style="color:var(--muted);font-size:0.85rem;margin:0">Live statistical breakdown of content and member contributions.</p>
+            </div>
+            <span class="chart-badge">D3.js Powered</span>
+        </div>
+
+        <div class="group-stats-grid">
+            <div class="stats-chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-wrap">
+                        <h3 style="font-size:0.92rem">Group Content Types</h3>
+                        <p class="chart-subtitle">Posts by media type in this group</p>
+                    </div>
+                </div>
+                <div id="group-post-types-chart" class="chart-body"></div>
+            </div>
+
+            <div class="stats-chart-card">
+                <div class="chart-header">
+                    <div class="chart-title-wrap">
+                        <h3 style="font-size:0.92rem">Top Active Contributors</h3>
+                        <p class="chart-subtitle">Members with highest post count in group</p>
+                    </div>
+                </div>
+                <div id="group-contributors-chart" class="chart-body"></div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script id="group-stats-data" type="application/json">
+    <%- JSON.stringify({ groupPostStats: groupPostStats || [], topContributors: topContributors || [] }) %>
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const { groupPostStats, topContributors } = JSON.parse(document.getElementById('group-stats-data').textContent || '{}');
+
+        // 1. Render Group Post Types Donut Chart
+        const postTypeColors = {
+            text: '#6c8cff',
+            image: '#ff5b7f',
+            video: '#22c55e'
+        };
+
+        const formattedStats = (groupPostStats || []).map(item => ({
+            label: item.type,
+            value: item.count,
+            color: postTypeColors[item.type] || '#ff9a5b'
+        }));
+
+        SocialNetCharts.renderDonutChart('#group-post-types-chart', formattedStats, {
+            centerLabel: 'Posts',
+            innerRadius: 50,
+            width: 320,
+            height: 220,
+            showLegend: true
+        });
+
+        // 2. Render Top Contributors Horizontal Bar Chart
+        SocialNetCharts.renderHorizontalBarChart('#group-contributors-chart', topContributors || [], {
+            color: '#6c8cff',
+            width: 380
+        });
+    });
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,81 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+
+<%
+const initials = (currentUser.fullName || '?').split(' ').map(w => w[0]).slice(0, 2).join('');
+%>
+
+<main class="container" style="max-width:720px">
+
+    <%# Composer prompt box %>
+    <section class="post" style="padding:16px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px">
+            <div class="avatar"><%= initials %></div>
+            <a href="/posts/new" style="flex:1">
+                <input class="field" type="text"
+                       placeholder="What's on your mind, <%= currentUser.fullName.split(' ')[0] %>?"
+                       style="margin-bottom:0;cursor:pointer;pointer-events:none" readonly>
+            </a>
+            <a href="/posts/new">
+                <button class="btn btn-primary btn-inline" style="margin-top:0;padding:10px 18px">Post</button>
+            </a>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:12px;padding-top:12px;border-top:1px solid var(--divider);font-size:.82rem">
+            <a href="/posts/new?type=text" style="color:var(--muted);display:flex;align-items:center;gap:6px">
+                <span>💬</span> Text Post
+            </a>
+            <a href="/posts/new?type=image" style="color:var(--muted);display:flex;align-items:center;gap:6px">
+                <span>🖼️</span> Photo
+            </a>
+            <a href="/posts/new?type=video" style="color:var(--muted);display:flex;align-items:center;gap:6px">
+                <span>🎬</span> Video
+            </a>
+        </div>
+    </section>
+
+    <%# Quick feed stats / shortcuts %>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+        <h1 style="margin:0;font-size:1.25rem">Activity Feed</h1>
+        <div class="chips" style="margin:0">
+            <a href="/friends" class="chip" title="Manage your friends">
+                👥 <%= friendCount %> Friends
+            </a>
+            <a href="/groups" class="chip" title="Browse your groups">
+                🏛️ <%= groupCount %> Groups
+            </a>
+            <a href="/posts/mine" class="chip" title="View your posts">
+                📝 My Posts
+            </a>
+        </div>
+    </div>
+
+    <%# Feed posts %>
+    <% if (posts.length === 0) { %>
+        <div class="empty-state" style="padding:50px 24px;background:var(--surface)">
+            <h2 style="margin:0 0 8px;font-size:1.15rem">Your feed is quiet</h2>
+            <p style="margin:0 0 20px;font-size:.9rem">
+                Posts from your friends and the groups you join will appear here in chronological order.
+            </p>
+            <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+                <a href="/posts/new">
+                    <button class="btn btn-primary btn-inline">Create first post</button>
+                </a>
+                <a href="/friends?tab=discover">
+                    <button class="btn btn-outline btn-inline">Find friends</button>
+                </a>
+                <a href="/groups">
+                    <button class="btn btn-outline btn-inline">Explore groups</button>
+                </a>
+            </div>
+        </div>
+    <% } else { %>
+        <div class="feed-stream">
+            <% posts.forEach(post => { %>
+                <%- include('../partials/post-card', { post }) %>
+            <% }) %>
+        </div>
+    <% } %>
+
+</main>
+
+<%- include('../partials/footer') %>
