@@ -56,7 +56,7 @@ const SCHEMA = {
             facebookPostId: { bsonType: ['string', 'null'] },
             // The id Twitter returns on publish, used to read engagement back and
             // to delete the tweet again (§33.iv).
-            twitterPostId:  { bsonType: ['string', 'null'] },  
+            twitterPostId:  { bsonType: ['string', 'null'] },
             createdAt:      { bsonType: 'date' }
         }
     }
@@ -310,7 +310,10 @@ async function setFacebookShare(id, facebookPostId) {
     );
     return findById(id);
 }
+
 // Record that a post reached Twitter, and the id it got there (§33.iv).
+// Passing null clears it again, so an unshare returns the post to its
+// pre-share state.
 async function setTwitterShare(id, twitterPostId) {
     await collection().updateOne(
         { _id: new ObjectId(id) },
