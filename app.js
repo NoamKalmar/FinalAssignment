@@ -82,7 +82,8 @@ const models = [
     require('./models/Group'),
     require('./models/Post'),
     require('./models/Place'),
-    require('./models/Media')
+    require('./models/Media'),
+    require('./models/Comment') 
 ];
 
 connectDB()

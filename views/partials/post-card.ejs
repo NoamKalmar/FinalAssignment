@@ -48,6 +48,7 @@ const hasLiked = currentUser && likesList.some(id => String(id) === String(curre
         </form>
 
         <div class="post-actions-right">
+            <a href="/posts/<%= post._id %>#comments">💬 Comments</a>
             <a href="/posts/<%= post._id %>">Open</a>
             <% if (isMine) { %>
                 <a href="/posts/<%= post._id %>/edit">Edit</a>
