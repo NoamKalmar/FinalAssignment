@@ -1,0 +1,40 @@
+<%- include('../partials/head') %>
+    <%- include('../partials/nav') %>
+
+        <main class="container" style="max-width:640px">
+
+            <p style="margin:0 0 14px"><a class="back" href="/friends">&larr; Back to friends</a></p>
+
+            <h1>Friend requests</h1>
+
+            <% if (success) { %>
+                <p class="alert alert-ok"><%= success %></p>
+            <% } %>
+            <% if (error) { %>
+                <p class="alert alert-error"><%= error %></p>
+            <% } %>
+
+            <% if (!pending.length) { %>
+                <p>No pending friend requests.</p>
+            <% } else { %>
+                <% pending.forEach(function(request) { %>
+                    <div class="fb-panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                        <div>
+                            <strong><%= request.from.fullName %></strong>
+                            <span style="color:#888"> @<%= request.from.username %></span>
+                        </div>
+                        <div style="display:flex;gap:8px">
+                            <form method="POST" action="/friends/requests/<%= request._id %>/accept">
+                                <button type="submit" class="btn btn-primary btn-inline">Accept</button>
+                            </form>
+                            <form method="POST" action="/friends/requests/<%= request._id %>/reject">
+                                <button type="submit" class="btn btn-outline btn-inline">Decline</button>
+                            </form>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } %>
+
+        </main>
+
+        <%- include('../partials/footer') %>

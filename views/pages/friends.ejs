@@ -28,14 +28,17 @@
     </form>
 
     <div class="tabs">
-        <a href="/friends?tab=friends<%= search ? '&q=' + encodeURIComponent(search) : '' %>"
-           class="tab <%= activeTab === 'friends' ? 'active' : '' %>">
-            My Friends (<%= friends.length %>)
-        </a>
-        <a href="/friends?tab=discover<%= search ? '&q=' + encodeURIComponent(search) : '' %>"
-           class="tab <%= activeTab === 'discover' ? 'active' : '' %>">
-            Find People (<%= discoverable.length %>)
-        </a>
+    <a href="/friends?tab=friends<%= search ? '&q=' + encodeURIComponent(search) : '' %>"
+       class="tab <%= activeTab === 'friends' ? 'active' : '' %>">
+        My Friends (<%= friends.length %>)
+    </a>
+    <a href="/friends?tab=discover<%= search ? '&q=' + encodeURIComponent(search) : '' %>"
+       class="tab <%= activeTab === 'discover' ? 'active' : '' %>">
+        Find People (<%= discoverable.length %>)
+    </a>
+    <a href="/friends/requests" class="tab">
+        Requests<% if (typeof pendingCount !== 'undefined' && pendingCount > 0) { %> (<%= pendingCount %>)<% } %>
+    </a>
     </div>
 
     <% if (activeTab === 'friends') { %>
@@ -131,11 +134,17 @@
                             <a href="/users/<%= u._id %>" class="btn-outline btn-inline" style="padding:6px 14px;font-size:.78rem;margin:0">
                                 Profile
                             </a>
-                            <form method="POST" action="/friends/<%= u._id %>/add">
-                                <button type="submit" class="btn btn-primary btn-inline" style="padding:6px 16px;font-size:.78rem;margin:0">
-                                    + Add Friend
-                                </button>
-                            </form>
+                            <% if (pendingOutgoing.has(String(u._id))) { %>
+                              <button type="button" class="btn btn-outline btn-inline" style="padding:6px 16px;font-size:.78rem;margin:0;opacity:0.6;cursor:default" disabled>
+                                 Requested
+                             </button>
+                            <% } else { %>
+                              <form method="POST" action="/friends/<%= u._id %>/add">
+                                   <button type="submit" class="btn btn-primary btn-inline" style="padding:6px 16px;font-size:.78rem;margin:0">
+                                     + Send Request
+                                  </button>
+                                </form>
+<% } %>
                         </div>
                     </div>
                 <% }) %>
