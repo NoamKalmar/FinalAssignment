@@ -20,6 +20,15 @@ function collection() {
     return getDB().collection(COLLECTION);
 }
 
+/**
+ * Search input is text to look for, not a regular expression.
+ * Without this, searching for "(" throws "missing closing parenthesis" and
+ * returns a 500, while "." quietly matches every comment (§29).
+ */
+function escapeRegex(text) {
+    return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 const SCHEMA = {
     $jsonSchema: {
         bsonType: 'object',
@@ -102,6 +111,115 @@ async function findByPostWithAuthor(postId) {
         .toArray();
 }
 
+/**
+ * Comment search — §22, which asks for Search on every model, not only Post.
+ *
+ * Four optional parameters: keyword, author, from, to. Each supplied one
+ * narrows the result; omitted ones are left out of the filter entirely, so an
+ * empty form returns everything rather than matching against a wildcard.
+ *
+ * $match runs before the $lookup, so author documents are only joined for
+ * comments that already survived the filter. Same shape as Post.search.
+ */
+async function search(params = {}) {
+    const filter = {};
+
+    if (params.keyword && params.keyword.trim()) {
+        filter.content = {
+            $regex: escapeRegex(params.keyword.trim()),
+            $options: 'i'
+        };
+    }
+
+    if (params.author) {
+        try {
+            filter.author = new ObjectId(params.author);
+        } catch {
+            // A malformed author id should return nothing, not throw (§29).
+            return [];
+        }
+    }
+
+    const range = {};
+    if (params.from) {
+        const d = new Date(params.from);
+        if (!isNaN(d)) range.$gte = d;
+    }
+    if (params.to) {
+        const d = new Date(params.to);
+        // "Up to and including this day" — a bare date parses as midnight,
+        // which would exclude everything written during that day.
+        if (!isNaN(d)) {
+            d.setHours(23, 59, 59, 999);
+            range.$lte = d;
+        }
+    }
+    if (Object.keys(range).length) filter.createdAt = range;
+
+    return collection()
+        .aggregate([
+            { $match: filter },
+            { $sort: { createdAt: -1 } },
+            { $limit: 100 },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'author',
+                    foreignField: '_id',
+                    as: 'authorDoc'
+                }
+            },
+            { $unwind: '$authorDoc' },
+            {
+                $addFields: {
+                    author: {
+                        _id: '$authorDoc._id',
+                        username: '$authorDoc.username',
+                        fullName: '$authorDoc.fullName'
+                    }
+                }
+            },
+            // The post a comment belongs to, so a result can link back to it
+            // and show what was being replied to.
+            {
+                $lookup: {
+                    from: 'posts',
+                    localField: 'post',
+                    foreignField: '_id',
+                    as: 'postDoc'
+                }
+            },
+            { $unwind: { path: '$postDoc', preserveNullAndEmptyArrays: true } },
+            { $addFields: { postContent: '$postDoc.content' } },
+            { $project: { authorDoc: 0, postDoc: 0 } }
+        ])
+        .toArray();
+}
+
+/**
+ * The people who have actually written a comment, for the author dropdown on
+ * the search form. Listing every registered user would offer names that can
+ * only ever return nothing.
+ */
+async function distinctAuthors() {
+    return collection()
+        .aggregate([
+            { $group: { _id: '$author' } },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'u'
+                }
+            },
+            { $unwind: '$u' },
+            { $project: { _id: '$u._id', fullName: '$u.fullName', username: '$u.username' } },
+            { $sort: { fullName: 1 } }
+        ])
+        .toArray();
+}
+
 async function update(id, content) {
     await collection().updateOne(
         { _id: new ObjectId(id) },
@@ -157,6 +275,8 @@ async function countByPost(postId) {
 }
 
 module.exports = {
+    search,
+    distinctAuthors,
     COLLECTION,
     applySchema,
     createIndexes,

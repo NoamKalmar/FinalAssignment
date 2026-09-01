@@ -15,5 +15,6 @@ router.get('/', searchController.showSearch);
 // which return data.
 router.get('/api/posts', searchController.searchPosts);
 router.get('/api/groups', searchController.searchGroups);
+router.get('/api/comments', searchController.searchComments);
 
 module.exports = router;
