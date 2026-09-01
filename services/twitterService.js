@@ -113,6 +113,20 @@ async function publish(text) {
     return result.data.id;   // the new tweet's id
 }
 
+// Small in-memory cache, same idea as weatherService. Unlike Facebook, X
+// bills per request — every view of a shared post would otherwise cost
+// another read, so refreshing a page repeatedly spends real credit. Two
+// minutes is short enough that a like arriving mid-demo still shows up.
+const cache = new Map();
+const CACHE_MS = 2 * 60 * 1000;
+
+function cached(key) {
+    const hit = cache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_MS) return hit.value;
+    cache.delete(key);
+    return null;
+}
+
 /**
  * Read back a tweet's public metrics — the receive half of §33.iv.
  * Read-only, so the simpler Bearer Token is enough (no OAuth 1.0a needed).
@@ -121,19 +135,25 @@ async function getEngagement(tweetId) {
     const c = config();
     if (!c.bearerToken) return null;
 
+    const hit = cached(tweetId);
+    if (hit !== null) return hit;
+
     const url = `${API}/tweets/${tweetId}?tweet.fields=public_metrics,created_at`;
     const data = await call(url, {
         headers: { 'Authorization': `Bearer ${c.bearerToken}` }
     });
 
     const m = (data.data && data.data.public_metrics) || {};
-    return {
+    const value = {
         permalink: `https://twitter.com/i/web/status/${tweetId}`,
         createdTime: (data.data && data.data.created_at) || null,
         likes: m.like_count || 0,
         comments: m.reply_count || 0,
         retweets: m.retweet_count || 0
     };
+
+    cache.set(tweetId, { at: Date.now(), value });
+    return value;
 }
 
 /** Delete a tweet — so an author can undo a share. Also needs OAuth 1.0a. */
@@ -145,6 +165,9 @@ async function unpublish(tweetId) {
         method: 'DELETE',
         headers: { 'Authorization': buildOAuthHeader('DELETE', url) }
     });
+
+    // Otherwise a deleted tweet's counts would keep being served from cache.
+    cache.delete(tweetId);
     return true;
 }
 

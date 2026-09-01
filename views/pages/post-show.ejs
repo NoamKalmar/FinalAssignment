@@ -105,6 +105,10 @@
                 </form>
             <% } else { %>
                 <div id="tw-engagement" class="fb-engagement">reading engagement from Twitter&hellip;</div>
+                <form method="POST" action="/twitter/<%= post._id %>/unshare"
+                      onsubmit="return confirm('Delete this tweet?')">
+                    <button class="btn btn-outline btn-inline" type="submit">Remove from Twitter</button>
+                </form>
                 <script>
                     // The receive half of §33.iv: our server asks Twitter for
                     // like/retweet totals, we render them here.
