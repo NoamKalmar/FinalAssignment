@@ -21,10 +21,24 @@
     </button>
 </form>
 
+                <%# Author-only controls. The server checks again in
+                    commentController — hiding these is presentation, not security. %>
                 <% if (String(comment.author._id) === String(currentUser._id)) { %>
+                    <button type="button" class="btn btn-outline btn-inline" style="font-size:0.8em"
+                            onclick="toggleCommentEdit('<%= comment._id %>')">Edit</button>
+
                     <form method="POST" action="/posts/<%= post._id %>/comments/<%= comment._id %>/delete"
                           style="display:inline" onsubmit="return confirm('Delete this comment?')">
                         <button type="submit" class="btn btn-outline btn-inline" style="font-size:0.8em">Delete</button>
+                    </form>
+
+                    <form method="POST" action="/posts/<%= post._id %>/comments/<%= comment._id %>/edit"
+                          id="edit-<%= comment._id %>" style="display:none;margin-top:6px">
+                        <textarea name="content" rows="2" maxlength="500" required
+                                  style="width:100%;padding:8px"><%= comment.content %></textarea>
+                        <button type="submit" class="btn btn-primary btn-inline" style="font-size:0.8em;margin-top:4px">Save</button>
+                        <button type="button" class="btn btn-outline btn-inline" style="font-size:0.8em"
+                                onclick="toggleCommentEdit('<%= comment._id %>')">Cancel</button>
                     </form>
                 <% } %>
             </div>
@@ -35,6 +49,15 @@
                       style="width:100%;padding:8px" required></textarea>
             <button type="submit" class="btn btn-primary btn-inline" style="margin-top:6px">Comment</button>
         </form>
+
+        <script>
+            // Swaps a comment between its text and its edit form. Plain
+            // show/hide — the form posts normally, no Ajax needed here.
+            function toggleCommentEdit(id) {
+                var form = document.getElementById('edit-' + id);
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        </script>
     </section>
 
     <%# §33.iv — Facebook. Visible to the author only; isOwner enforces it.

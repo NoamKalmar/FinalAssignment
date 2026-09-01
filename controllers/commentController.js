@@ -14,6 +14,13 @@ function forbidden(message) {
     return err;
 }
 
+// A malformed :id makes ObjectId throw — that is a 404, not a 500. Same
+// helper as postController, because a typed URL should not look like a
+// server crash (§29).
+function isBadId(err) {
+    return err.name === 'BSONError' || /24 hex|hex string/i.test(err.message);
+}
+
 // POST /posts/:postId/comments
 const create = async (req, res, next) => {
     try {
@@ -42,7 +49,7 @@ const create = async (req, res, next) => {
 
         res.redirect('/posts/' + req.params.postId);
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -68,7 +75,7 @@ const update = async (req, res, next) => {
         await Comment.update(req.params.id, content);
         res.redirect('/posts/' + req.params.postId);
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -85,7 +92,7 @@ const remove = async (req, res, next) => {
         await Comment.remove(req.params.id);
         res.redirect('/posts/' + req.params.postId);
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 // POST /posts/:postId/comments/:id/like
@@ -98,7 +105,7 @@ const toggleLike = async (req, res, next) => {
         }
         res.redirect('/posts/' + req.params.postId);
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
