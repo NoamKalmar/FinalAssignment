@@ -2,6 +2,18 @@ const { ObjectId } = require('mongodb');
 const User = require('../models/User');
 const FriendRequest = require('../models/FriendRequest');
 
+function notFound() {
+    const err = new Error('Not found');
+    err.status = 404;
+    return err;
+}
+
+// A malformed :id makes ObjectId throw — that is a 404, not a 500. Same
+// helper as postController, so a typed URL never looks like a crash (§29).
+function isBadId(err) {
+    return err.name === 'BSONError' || /24 hex|hex string/i.test(err.message);
+}
+
 // GET /friends
 const list = async (req, res, next) => {
     try {
@@ -28,7 +40,7 @@ const list = async (req, res, next) => {
             error: req.query.error || null
         });
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -73,7 +85,7 @@ const add = async (req, res, next) => {
         }
         res.redirect('/friends?success=' + encodeURIComponent(`Friend request sent to ${targetUser.fullName}.`));
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -88,7 +100,7 @@ const requests = async (req, res, next) => {
             error: req.query.error || null
         });
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -111,7 +123,7 @@ const accept = async (req, res, next) => {
 
         res.redirect('/friends/requests?success=' + encodeURIComponent('Friend request accepted.'));
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -132,7 +144,7 @@ const reject = async (req, res, next) => {
 
         res.redirect('/friends/requests?success=' + encodeURIComponent('Friend request declined.'));
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 
@@ -157,7 +169,7 @@ const remove = async (req, res, next) => {
         }
         res.redirect('/friends?success=' + encodeURIComponent(`Removed ${targetUser ? targetUser.fullName : 'friend'} from your friends list.`));
     } catch (err) {
-        next(err);
+        next(isBadId(err) ? notFound() : err);
     }
 };
 

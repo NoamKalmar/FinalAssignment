@@ -216,6 +216,13 @@ const update = async (req, res, next) => {
 const remove = async (req, res, next) => {
     try {
         await dropMedia(req.doc.mediaUrl);   // don't leave the bytes behind
+
+        // Comments live in their own collection, so deleting the post does
+        // not remove them — they would stay behind pointing at an id that no
+        // longer exists. Removed first: if the post delete then fails, the
+        // user retries and nothing is left half-deleted either way.
+        await Comment.removeByPost(req.params.id);
+
         await Post.remove(req.params.id);
 
         const referrer = req.get('Referrer');
