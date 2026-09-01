@@ -1,6 +1,8 @@
 const Post = require('../models/Post');
+const Comment = require('../models/Comment');
 const Media = require('../models/Media');
 const Group = require('../models/Group');
+const twitter = require('../services/twitterService');
 const facebook = require('../services/facebookService');
 
 /**
@@ -133,12 +135,15 @@ const show = async (req, res, next) => {
     try {
         const post = await Post.findByIdWithAuthor(req.params.id);
         if (!post) return next(notFound());
-        // The Facebook panel is hidden entirely when no credentials are set,
-        // rather than offering a button that can only fail (§33.iv).
+
+        const comments = await Comment.findByPostWithAuthor(req.params.id);
+
         res.render('pages/post-show', {
             title: 'Post — SocialNet',
             post,
-            facebookConfigured: facebook.isConfigured()
+            comments,
+            facebookConfigured: facebook.isConfigured(),
+            twitterConfigured: twitter.isConfigured()
         });
     } catch (err) {
         next(isBadId(err) ? notFound() : err);

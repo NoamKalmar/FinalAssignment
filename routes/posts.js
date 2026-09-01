@@ -6,6 +6,7 @@ const isOwner = require('../middleware/isOwner');
 const { upload, handleUploadErrors } = require('../middleware/upload');
 const Post = require('../models/Post');
 const postController = require('../controllers/postController');
+const commentController = require('../controllers/commentController');
 
 // Every post route requires a session (§25).
 router.use(isAuth);
@@ -47,4 +48,9 @@ router.get('/:id/engagement', postController.facebookEngagement);
 
 router.post('/:id/delete', isOwner(Post, 'author'), postController.remove);
 
+
+router.post('/:postId/comments', commentController.create);
+router.post('/:postId/comments/:id/edit', commentController.update);
+router.post('/:postId/comments/:id/delete', commentController.remove);
+router.post('/:postId/comments/:id/like', commentController.toggleLike);
 module.exports = router;
