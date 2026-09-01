@@ -53,6 +53,14 @@ function pastDate(maxDaysAgo = 70) {
     const d = new Date();
     d.setDate(d.getDate() - Math.floor(days));
     d.setHours(7 + Math.floor(rnd() * 15), Math.floor(rnd() * 60), 0, 0);
+
+    // The hour is picked between 07:00 and 21:00 regardless of the day, so
+    // landing on today can produce a time later than right now — a post dated
+    // in the future, which reads as broken on the feed and makes any comment
+    // on it appear to predate it. Pull those back to a few minutes ago.
+    const now = new Date();
+    if (d > now) return new Date(now.getTime() - Math.floor(rnd() * 90 + 5) * 60 * 1000);
+
     return d;
 }
 
@@ -153,6 +161,52 @@ const TAGS = {
     personal: ['life', 'thoughts', 'weekend']
 };
 
+// Replies are keyed by group so a comment reads as an answer to the post it
+// sits under, rather than a generic line that would fit anywhere.
+const REPLIES = {
+    'Web Development 2026': [
+        'This caught me too. The order of the middleware is not obvious until it breaks.',
+        'Do you have a link to where you read that? Would like the details.',
+        'Same thing happened to me last week. Took a while to spot.',
+        'Adding an index made the biggest difference for us as well.',
+        'Worth putting this in the group description so nobody else loses an evening.'
+    ],
+    'Photography': [
+        'The light in this one is lovely.',
+        'What lens was this shot on?',
+        'Overcast is genuinely underrated, agreed.',
+        'Would love to see the rest of the roll.'
+    ],
+    'Hiking & Trails': [
+        'Did this one in spring. The last hour is worth it.',
+        'Good to know about the water, thanks.',
+        'How long did it take you door to door?',
+        'Adding this to the list for next month.'
+    ],
+    'Home Cooking': [
+        'That crumb looks excellent.',
+        'Recipe please.',
+        'Higher heat really does change everything.',
+        'Tried this yesterday and it worked.'
+    ],
+    'Game Night': [
+        'I am up for it. Weekend works.',
+        'The ending stayed with me for days.',
+        'Count me in if there is still room.'
+    ],
+    'Live Music': [
+        'Small venues are always the best ones.',
+        'Which night was this?',
+        'Three weeks sounds about right for that riff.'
+    ],
+    personal: [
+        'Completely agree.',
+        'Ha, this is very relatable.',
+        'Hope the week gets easier.',
+        'Good call.'
+    ]
+};
+
 // ---------------------------------------------------------------------------
 
 async function reset(db) {
@@ -167,6 +221,25 @@ async function reset(db) {
         return;
     }
 
+    // Comments first, and by post as well as by author: a real account may
+    // have replied to a demo post, and that comment has to go too or it is
+    // left pointing at a post id that no longer exists.
+    const demoPostIds = await db.collection('posts')
+        .find({ author: { $in: ids } }, { projection: { _id: 1 } })
+        .toArray();
+    const comments = await db.collection('comments').deleteMany({
+        $or: [
+            { author: { $in: ids } },
+            { post: { $in: demoPostIds.map(p => p._id) } }
+        ]
+    });
+
+    // Friend requests point at users from both ends, so either side being a
+    // demo account is enough to make the row meaningless once that user goes.
+    await db.collection('friendRequests').deleteMany({
+        $or: [{ from: { $in: ids } }, { to: { $in: ids } }]
+    });
+
     const posts = await db.collection('posts').deleteMany({ author: { $in: ids } });
     const groups = await db.collection('groups').deleteMany({ owner: { $in: ids } });
 
@@ -175,10 +248,11 @@ async function reset(db) {
     await db.collection('groups').updateMany({}, { $pull: { members: { user: { $in: ids } } } });
     await db.collection('posts').updateMany({}, { $pull: { likes: { $in: ids } } });
     await db.collection('users').updateMany({}, { $pull: { friends: { $in: ids } } });
+    await db.collection('comments').updateMany({}, { $pull: { likes: { $in: ids } } });
 
     const users = await db.collection('users').deleteMany({ _id: { $in: ids } });
 
-    console.log(`  removed ${users.deletedCount} users, ${groups.deletedCount} groups, ${posts.deletedCount} posts`);
+    console.log(`  removed ${users.deletedCount} users, ${groups.deletedCount} groups, ${posts.deletedCount} posts, ${comments.deletedCount} comments`);
 }
 
 async function main() {
@@ -314,13 +388,50 @@ async function main() {
         }
     }
 
-    await db.collection('posts').insertMany(posts);
+    const inserted = await db.collection('posts').insertMany(posts);
     const byType = posts.reduce((acc, p) => ({ ...acc, [p.type]: (acc[p.type] || 0) + 1 }), {});
     console.log(`  ${posts.length} posts — ${byType.text || 0} text, ${byType.image || 0} image, ${byType.video || 0} video`);
 
+    // ---- comments ----
+    //
+    // Roughly two thirds of posts get a reply, so the feed shows a mix of
+    // discussed and quiet posts rather than a uniform count on every card.
+    //
+    // A comment is always dated after the post it belongs to, otherwise the
+    // thread would read as a reply written before the thing it replies to.
+    console.log('\nComments');
+    const comments = [];
+
+    posts.forEach((post, i) => {
+        if (rnd() > 0.66) return;                       // this one stays quiet
+
+        const groupName = groupDocs.find(g => String(g._id) === String(post.group));
+        const pool = REPLIES[groupName ? groupName.name : 'personal'] || REPLIES.personal;
+
+        // Commenters are drawn from everyone, including the author — people
+        // do reply in their own threads.
+        for (const author of pickN(users, 1 + Math.floor(rnd() * 3))) {
+            const after = new Date(post.createdAt.getTime()
+                + Math.floor(rnd() * 3 * 24 * 60 * 60 * 1000) + 60 * 1000);
+
+            comments.push({
+                post: inserted.insertedIds[i],
+                author: author._id,
+                content: pick(pool),
+                likes: pickN(users, Math.floor(rnd() * 4)).map(u => u._id),
+                createdAt: after > new Date() ? new Date() : after,
+                updatedAt: null
+            });
+        }
+    });
+
+    if (comments.length) await db.collection('comments').insertMany(comments);
+    const commented = new Set(comments.map(c => String(c.post))).size;
+    console.log(`  ${comments.length} comments across ${commented} of ${posts.length} posts`);
+
     // ---- summary ----
     console.log('\n' + '─'.repeat(52));
-    for (const c of ['users', 'groups', 'posts']) {
+    for (const c of ['users', 'groups', 'posts', 'comments']) {
         console.log(`  ${c.padEnd(8)} ${await db.collection(c).countDocuments()} total in database`);
     }
     console.log(`\n  Demo logins:  any username above  /  ${DEMO_PASSWORD}`);
