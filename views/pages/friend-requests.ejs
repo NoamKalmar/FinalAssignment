@@ -14,7 +14,73 @@
                 <p class="alert alert-error"><%= error %></p>
             <% } %>
 
-            <% if (!pending.length) { %>
+            <%# §22 — Search on the FriendRequest model. Four parameters, and
+                the form is a plain GET so a search is shareable and survives
+                a refresh, the same way /search works. %>
+            <form method="GET" action="/friends/requests" class="fb-panel"
+                  style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+                <div style="flex:1 1 180px">
+                    <label for="q" style="display:block;font-size:.8rem;color:var(--muted)">Name or username</label>
+                    <input id="q" name="q" type="text" value="<%= params.keyword %>"
+                           placeholder="e.g. maya" style="width:100%;padding:8px">
+                </div>
+                <div>
+                    <label for="status" style="display:block;font-size:.8rem;color:var(--muted)">Status</label>
+                    <select id="status" name="status" style="padding:8px">
+                        <option value="">Any</option>
+                        <% ['pending', 'accepted', 'rejected'].forEach(function (s) { %>
+                            <option value="<%= s %>" <%= params.status === s ? 'selected' : '' %>><%= s %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div>
+                    <label for="from" style="display:block;font-size:.8rem;color:var(--muted)">From</label>
+                    <input id="from" name="from" type="date" value="<%= params.from %>" style="padding:8px">
+                </div>
+                <div>
+                    <label for="to" style="display:block;font-size:.8rem;color:var(--muted)">To</label>
+                    <input id="to" name="to" type="date" value="<%= params.to %>" style="padding:8px">
+                </div>
+                <button type="submit" class="btn btn-primary btn-inline">Search</button>
+                <% if (searching) { %>
+                    <a href="/friends/requests"><button type="button" class="btn btn-outline btn-inline">Clear</button></a>
+                <% } %>
+            </form>
+
+            <% if (searching) { %>
+                <h2 style="font-size:1rem;margin:18px 0 8px">
+                    <%= results.length %> result<%= results.length === 1 ? '' : 's' %>
+                </h2>
+                <% if (!results.length) { %>
+                    <p>Nothing matched that search.</p>
+                <% } %>
+                <% results.forEach(function (r) { %>
+                    <div class="fb-panel" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                        <div>
+                            <strong><%= r.outgoing ? r.to.fullName : r.from.fullName %></strong>
+                            <span style="color:#888"> @<%= r.outgoing ? r.to.username : r.from.username %></span>
+                            <div style="font-size:.8rem;color:var(--muted)">
+                                <%= r.outgoing ? 'sent by you' : 'sent to you' %>
+                                &middot; <%= r.status %>
+                                &middot; <%= r.createdAt.toLocaleDateString('en-GB') %>
+                            </div>
+                        </div>
+                        <%# Accept/decline only on a pending request that is actually
+                            mine to answer. The server checks again either way. %>
+                        <% if (!r.outgoing && r.status === 'pending') { %>
+                            <div style="display:flex;gap:8px">
+                                <form method="POST" action="/friends/requests/<%= r._id %>/accept">
+                                    <button type="submit" class="btn btn-primary btn-inline">Accept</button>
+                                </form>
+                                <form method="POST" action="/friends/requests/<%= r._id %>/reject">
+                                    <button type="submit" class="btn btn-outline btn-inline">Decline</button>
+                                </form>
+                            </div>
+                        <% } %>
+                    </div>
+                <% }); %>
+
+            <% } else if (!pending.length) { %>
                 <p>No pending friend requests.</p>
             <% } else { %>
                 <% pending.forEach(function(request) { %>

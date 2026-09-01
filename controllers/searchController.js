@@ -1,5 +1,6 @@
 const Post = require('../models/Post');
 const Group = require('../models/Group');
+const Comment = require('../models/Comment');
 
 /**
  * Search (§23) and Ajax (§30).
@@ -16,19 +17,21 @@ const Group = require('../models/Group');
 // GET /search — the page itself
 const showSearch = async (req, res, next) => {
     try {
-        const [myGroups, categories] = await Promise.all([
+        const [myGroups, categories, commentAuthors] = await Promise.all([
             Group.findByMember(req.session.user._id),
-            Group.distinctCategories()
+            Group.distinctCategories(),
+            Comment.distinctAuthors()
         ]);
 
         // Honour parameters already in the URL, so a shared search link works.
-        const tab = req.query.tab === 'groups' ? 'groups' : 'posts';
+        const tab = ['groups', 'comments'].includes(req.query.tab) ? req.query.tab : 'posts';
 
         res.render('pages/search', {
             title: 'Search — SocialNet',
             tab,
             myGroups,
             categories,
+            commentAuthors,
             query: req.query
         });
     } catch (err) {
@@ -104,4 +107,40 @@ const searchGroups = async (req, res, next) => {
     }
 };
 
-module.exports = { showSearch, searchPosts, searchGroups };
+// GET /search/api/comments — §22 asks for Search on every model, not only
+// the two headline queries of §23. Same JSON shape as the others so the
+// client-side code can treat all three tabs identically.
+const searchComments = async (req, res, next) => {
+    try {
+        const comments = await Comment.search({
+            keyword: req.query.keyword,
+            author: req.query.author,
+            from: req.query.from,
+            to: req.query.to
+        });
+
+        res.json({
+            count: comments.length,
+            results: comments.map(c => ({
+                _id: c._id,
+                post: c.post,
+                content: c.content,
+                // A short excerpt of the post, so a result shows what was
+                // being replied to without loading the whole post.
+                postContent: (c.postContent || '').slice(0, 90),
+                createdAt: c.createdAt,
+                edited: Boolean(c.updatedAt),
+                likes: (c.likes || []).length,
+                author: {
+                    _id: c.author._id,
+                    username: c.author.username,
+                    fullName: c.author.fullName
+                }
+            }))
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+module.exports = { showSearch, searchPosts, searchGroups, searchComments };

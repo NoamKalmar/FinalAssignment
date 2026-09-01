@@ -11,6 +11,7 @@
     <div class="tabs" role="tablist">
         <button class="tab <%= tab === 'posts' ? 'on' : '' %>" data-tab="posts" role="tab">Posts</button>
         <button class="tab <%= tab === 'groups' ? 'on' : '' %>" data-tab="groups" role="tab">Groups</button>
+        <button class="tab <%= tab === 'comments' ? 'on' : '' %>" data-tab="comments" role="tab">Comments</button>
     </div>
 
     <!-- ══════════════ SEARCH 1 — POSTS, six parameters (§23) ══════════════ -->
@@ -108,6 +109,48 @@
 
         <p id="status-groups" class="search-status" aria-live="polite"></p>
         <div id="results-groups"></div>
+    </section>
+
+    <%# §22 asks for Search on every model, not only the two headline queries
+        of §23. Same panel structure and the same live-search code as above. %>
+    <section id="panel-comments" class="search-panel" <%= tab === 'comments' ? '' : 'hidden' %>>
+        <form id="form-comments" class="search-form" onsubmit="return false">
+            <div class="search-grid">
+                <div class="sf-wide">
+                    <label class="label" for="c-keyword">Keyword</label>
+                    <input class="field" id="c-keyword" name="keyword" type="text"
+                           placeholder="Text inside a comment">
+                </div>
+
+                <div>
+                    <label class="label" for="c-author">Author</label>
+                    <select class="field" id="c-author" name="author">
+                        <option value="">Anyone</option>
+                        <% commentAuthors.forEach(a => { %>
+                            <option value="<%= a._id %>"><%= a.fullName %></option>
+                        <% }) %>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="label" for="c-from">Written after</label>
+                    <input class="field" id="c-from" name="from" type="date">
+                </div>
+
+                <div>
+                    <label class="label" for="c-to">Written before</label>
+                    <input class="field" id="c-to" name="to" type="date">
+                </div>
+            </div>
+
+            <div class="search-actions">
+                <span class="param-note">4 parameters</span>
+                <button class="btn btn-outline btn-inline" type="button" data-reset="comments">Clear</button>
+            </div>
+        </form>
+
+        <p id="status-comments" class="search-status" aria-live="polite"></p>
+        <div id="results-comments"></div>
     </section>
 
 </main>

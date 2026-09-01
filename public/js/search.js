@@ -162,6 +162,31 @@
             '</a>';
     }
 
+    function renderComment(c) {
+        var initials = (c.author.fullName || '?')
+            .split(' ').map(function (w) { return w[0]; }).slice(0, 2).join('');
+
+        return '' +
+            '<a class="sr" href="/posts/' + esc(c.post) + '#comments">' +
+              '<div class="avatar sm">' + esc(initials) + '</div>' +
+              '<div class="sr-body">' +
+                '<div class="sr-top">' +
+                  '<strong>' + esc(c.author.fullName) + '</strong>' +
+                  '<span class="sr-meta">@' + esc(c.author.username) +
+                    ' &middot; ' + esc(formatDate(c.createdAt)) +
+                    (c.edited ? ' &middot; edited' : '') +
+                    (c.likes ? ' &middot; ' + esc(c.likes) + ' likes' : '') +
+                  '</span>' +
+                '</div>' +
+                '<p class="sr-text">' + esc(c.content) + '</p>' +
+                // Context: which post this was a reply to.
+                (c.postContent
+                    ? '<p class="sr-meta">on: ' + esc(c.postContent) + '&hellip;</p>'
+                    : '') +
+              '</div>' +
+            '</a>';
+    }
+
     // ── tabs ───────────────────────────────────────────────────────────────
 
     document.querySelectorAll('.tab').forEach(function (btn) {
@@ -178,4 +203,5 @@
 
     wirePanel('posts', '/search/api/posts', renderPost);
     wirePanel('groups', '/search/api/groups', renderGroup);
+    wirePanel('comments', '/search/api/comments', renderComment);
 })();

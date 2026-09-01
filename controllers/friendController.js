@@ -92,10 +92,30 @@ const add = async (req, res, next) => {
 // GET /friends/requests — pending requests sent TO the current user.
 const requests = async (req, res, next) => {
     try {
-        const pending = await FriendRequest.findPendingForUser(req.session.user._id);
+        const userId = req.session.user._id;
+
+        // Any search parameter switches the page from "pending requests I can
+        // act on" to search results across my whole request history — sent and
+        // received, any status (§22).
+        const params = {
+            keyword: (req.query.q || '').trim(),
+            status: req.query.status || '',
+            from: req.query.from || '',
+            to: req.query.to || ''
+        };
+        const searching = Boolean(params.keyword || params.status || params.from || params.to);
+
+        const [pending, results] = await Promise.all([
+            FriendRequest.findPendingForUser(userId),
+            searching ? FriendRequest.search(userId, params) : Promise.resolve(null)
+        ]);
+
         res.render('pages/friend-requests', {
             title: 'Friend requests — SocialNet',
             pending,
+            results,
+            searching,
+            params,
             success: req.query.success || null,
             error: req.query.error || null
         });
